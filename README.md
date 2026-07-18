@@ -26,7 +26,7 @@ Key design decisions developed with Codex:
 - **TTY-verified approvals.** Before Vizhi sends an approval response, it verifies the target Terminal tab by TTY. That keeps an approval tied to the Codex session that requested it, even when sessions move between slots.
 - **Live Codex controls, not hardcoded choices.** Model, reasoning, mode, and approval controls open Codex's own current pickers rather than encoding an outdated list in the plugin.
 
-GPT-5.6 was used in Codex for high-reasoning architecture and safety reviews, especially around approval delivery, the local dashboard token model, and the shared action path. Routine UI, documentation, and parity work used lighter-weight iterative sessions. The primary Codex session ID is submitted through Devpost's `/feedback` flow.
+Early architecture and implementation iterations used GPT-5.6 Terra High. Later, GPT-5.6 Terra Max was used for the harder integration and safety reviews, especially around approval delivery, the local dashboard token model, and the shared action path. Routine UI, documentation, and parity work used lighter-weight iterative sessions. The primary Codex session ID is submitted through Devpost's `/feedback` flow.
 
 ## What you need
 
