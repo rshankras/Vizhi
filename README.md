@@ -2,9 +2,9 @@
 
 > **Vizhi (விழி)** — Tamil for *"eye."* Vizhi watches your Codex agents so you do not have to.
 
-Vizhi is live supervision for Codex CLI sessions in two places: a **Logitech MX Creative Keypad** plugin and a **local browser dashboard**. See each session's state at a glance, then approve, interrupt, redirect, or add context with a key press. It is designed for macOS and Terminal.app; the browser dashboard does not require a keypad.
+Vizhi is live supervision for Codex CLI sessions in two places: a **Logitech MX Creative Keypad** plugin and a **local browser dashboard**. See each session's state at a glance, then approve, interrupt, redirect, or add context with a key press or spoken prompt. It is designed for macOS and Terminal.app; the browser dashboard does not require a keypad.
 
-**Choose your surface:** use the Logitech MX Creative Keypad for instant tactile controls, or open the local browser dashboard for a full live view—Vizhi keeps both in sync.
+**Choose your surface:** use the Logitech MX Creative Keypad for instant tactile controls and hands-free Voice, or open the local browser dashboard for a full live view—Vizhi keeps both in sync.
 
 **Try the replay in 60 seconds** — Node.js only; no keypad, Codex account, or macOS required:
 
@@ -35,7 +35,7 @@ Early architecture and implementation iterations used GPT-5.6 Terra High. Later,
 - For the physical keypad: Logi Options+, an MX Creative Keypad, and the Vizhi `.lplug4` plugin package.
 - Only for the optional browser dashboard: a current Node.js LTS release.
 - Only when building the plugin yourself: the .NET 10 SDK and `logiplugintool` from the Logi Actions SDK.
-- Only for physical offline Voice: `whisper-cli` once (for example, `brew install whisper-cpp`). Vizhi installs its helper automatically and asks before downloading its local Whisper model.
+- For physical offline Voice: `whisper-cli` once (for example, `brew install whisper-cpp`). Vizhi installs its helper automatically and asks before downloading its local Whisper model.
 
 ## Logitech MX Creative Keypad
 
@@ -91,7 +91,7 @@ Vizhi does not need an administrator password, Full Disk Access, Input Monitorin
 - **Accessibility for Logi Plugin Service — needed for keypad actions.** This lets Vizhi bring the right Terminal tab forward and send keys such as Yes, No, Esc, or a prompt. Go to **System Settings → Privacy & Security → Accessibility** and enable **LogiPluginService** if macOS asks. Vizhi does not require the separate **Logi Options+** or **Terminal** entries to be enabled.
 - **Automation for Terminal — needed when macOS asks.** Allow **Logi Plugin Service** to control Terminal.app so Vizhi can select the matching tab. This is only for Terminal.app actions.
 - **Automation for System Events — needed when macOS asks.** Allow **Logi Plugin Service** to control System Events so Vizhi can send real keys to Codex, including Yes, No, Voice text, Esc, and menu navigation.
-- **Microphone — optional Voice only.** Browser Voice asks your browser for microphone access. After physical Voice finishes its one-time setup, `Vizhi Voice Helper` asks for access.
+- **Microphone — needed for Voice.** Browser Voice asks your browser for microphone access. After physical Voice finishes its one-time setup, `Vizhi Voice Helper` asks for access.
 - **Screen Recording — optional Screenshot only.** Allow it only if macOS asks when you use Vizhi's Screenshot action through Logi Plugin Service.
 
 The `Clipboard` action sends your current clipboard text to the selected Codex session. The `Screenshot` action keeps a local image for up to 15 minutes so Codex can inspect it after you send the prompt.
@@ -131,7 +131,7 @@ Allow Terminal control so Vizhi can select the correct Codex tab, then allow Sys
 
 <img src="docs/images/permissions/system-events-automation.png" alt="macOS asks to allow LogiPluginService to control System Events" width="420">
 
-#### 3. Set up optional local Voice
+#### 3. Set up local Voice
 
 The first physical Voice press asks before downloading the one-time local Whisper model. It then asks for microphone access for the separate `VizhiVoiceHelper` app. The audio remains local to the Mac for transcription.
 
@@ -254,9 +254,9 @@ Logi Plugin Service starts Vizhi's embedded action service with the plugin. It f
 
 The embedded service claims each action by moving it into `/tmp/vizhi/actions/done/` before execution, then removes completed and quarantined action records after one hour. It quarantines malformed action files in `/tmp/vizhi/actions/failed/` so one bad file cannot block later keypad input. It verifies the selected tab by TTY before sending an approval response. `approve`, `deny`, and offline `voice` actions are supported.
 
-### Physical offline Voice (optional)
+### Physical offline Voice
 
-Assign the `Voice` action from the `Vizhi Operate` group to a keypad key. Press once to record (the key changes to an animated green Listening face), speak, then press it again to transcribe. Vizhi sends the transcript immediately. When the selected session has a staged Screenshot draft, it includes the screenshot path and spoken context in that same submission. Transcription runs locally through `whisper-cli`; its temporary audio and transcript files live in a private Vizhi runtime directory and are cleared after transcription.
+Voice is Vizhi's hands-free way to send prompts and context without reaching for the keyboard. Assign the `Voice` action from the `Vizhi Operate` group to a keypad key. Press once to record (the key changes to an animated green Listening face), speak, then press it again to transcribe. Vizhi sends the transcript immediately. When the selected session has a staged Screenshot draft, it includes the screenshot path and spoken context in that same submission. Transcription runs locally through `whisper-cli`; its temporary audio and transcript files live in a private Vizhi runtime directory and are cleared after transcription.
 
 On the first `Voice` press, Vizhi installs its bundled helper into your private local runtime. If needed, it asks before downloading the one-time local Whisper model (about 142 MB). When that download finishes, macOS asks for Microphone permission for `Vizhi Voice Helper`; approve it, then tap `Voice` again to record. No setup script is required. `whisper-cli` must still be installed first, for example with `brew install whisper-cpp`. Normal physical Voice focuses the selected Terminal.app session and sends the transcript directly. Screenshot-plus-Voice uses the same embedded action service as Screenshot capture. Browser Voice does not use Whisper; it uses your browser's microphone permission instead.
 
