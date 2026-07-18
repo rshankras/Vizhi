@@ -31,13 +31,13 @@ The default profile is registered under **Terminal**, not as a separate Vizhi ap
 
 ### 3. Start Codex normally
 
-When Vizhi first loads, it installs its small bundled local hook into `~/.codex/config.toml` and keeps a one-time backup at `~/.codex/config.toml.vizhi.bak`. Restart any already-running Codex session, then approve Codex's one-time hook-trust prompt.
+When Vizhi first loads, it installs its small bundled local hook into `~/.codex/config.toml` and keeps a one-time backup at `~/.codex/config.toml.vizhi.bak`. Restart any already-running Codex session. At Codex's one-time hook-trust prompt, review the hooks and choose **Trust all and continue** to enable Vizhi's live Grid; the prompt is explained in the [first-use setup walkthrough](#first-use-setup-walkthrough).
 
 Start or resume Codex normally in Terminal.app. New sessions appear on the earliest free session key as soon as Codex starts; keypad actions are handled automatically by Logi Plugin Service.
 
 ### First-use prompts
 
-Two approvals cannot and should not be automated: Codex asks you to trust its hook, and macOS may ask Logi Plugin Service for Accessibility or Terminal Automation permission. Approve them only after confirming Vizhi is installed.
+Two approvals cannot and should not be automated: Codex asks you to trust Vizhi's local hooks, and macOS may ask Logi Plugin Service for Accessibility or Terminal Automation permission. Approve them only after confirming Vizhi is installed.
 
 ## Optional browser dashboard
 
@@ -61,7 +61,7 @@ npm run router
 
 Vizhi does not need an administrator password, Full Disk Access, Input Monitoring, or access to a cloud account. The live Grid only needs Codex hook trust. macOS asks for further access only when you use features that control Terminal, type keys, record Voice, or capture a screenshot.
 
-- **Codex hook trust — required for live session cards.** The installed plugin adds a marked Vizhi hook block locally. Approve Codex's trust prompt normally; the hook only writes local session state and never bypasses Codex approvals.
+- **Codex hook trust — required for live session cards.** The installed plugin adds a marked Vizhi hook block locally. At the Codex prompt, select **Trust all and continue** after reviewing it; the six events call one local Vizhi hook that writes session state and never bypasses Codex approvals.
 - **Accessibility for Logi Plugin Service — needed for keypad actions.** This lets Vizhi bring the right Terminal tab forward and send keys such as Yes, No, Esc, or a prompt. Go to **System Settings → Privacy & Security → Accessibility** and enable **LogiPluginService** if macOS asks. Vizhi does not require the separate **Logi Options+** or **Terminal** entries to be enabled.
 - **Automation for Terminal — needed when macOS asks.** Allow **Logi Plugin Service** to control Terminal.app so Vizhi can select the matching tab. This is only for Terminal.app actions.
 - **Automation for System Events — needed when macOS asks.** Allow **Logi Plugin Service** to control System Events so Vizhi can send real keys to Codex, including Yes, No, Voice text, Esc, and menu navigation.
@@ -70,12 +70,22 @@ Vizhi does not need an administrator password, Full Disk Access, Input Monitorin
 
 The `Clipboard` action sends your current clipboard text to the selected Codex session. The `Screenshot` action keeps a local image for up to 15 minutes so Codex can inspect it after you send the prompt.
 
-### First-use permission walkthrough
+### First-use setup walkthrough
 
-The wording and appearance vary slightly between macOS releases. Only approve a permission when you want to use its matching feature; macOS adds the app entry automatically, so do not add anything manually.
+Codex hook trust comes first, followed by macOS feature permissions. The wording and appearance vary slightly between releases. Only approve access when you want to use its matching feature; macOS adds app entries automatically, so do not add anything manually.
 
 <details>
-<summary>Show the macOS permission screenshots</summary>
+<summary>Show the first-use setup screenshots</summary>
+
+#### 0. Trust the six local Vizhi Codex hooks
+
+This is a Codex safety review, not a macOS permission. Codex shows six lifecycle events because Vizhi needs reliable live state: session start, submitted prompts, tool activity, approval requests, completed tools, and the end of a turn. They all call the same bundled local Vizhi hook; it writes local session-state files and never approves actions on your behalf.
+
+Choose **Review hooks** to inspect the list, then choose **Trust all and continue** when you are satisfied. Choosing **Continue without trusting** leaves Codex usable, but Vizhi cannot reliably show new sessions, Working/Ready state, or approval requests.
+
+<img src="docs/images/permissions/codex-hooks-trust.png" alt="Codex asks whether to review and trust the six Vizhi hooks" width="760">
+
+<img src="docs/images/permissions/codex-hooks-review.png" alt="Codex review showing the six installed Vizhi hook events" width="900">
 
 #### 1. Allow LogiPluginService accessibility
 
