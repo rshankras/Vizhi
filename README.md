@@ -6,16 +6,7 @@ Vizhi is live supervision for Codex CLI sessions through a **Logitech MX Creativ
 
 **Choose your surface:** use the Logitech MX Creative Keypad for instant tactile controls and hands-free Voice, or open the browser dashboard for a full live view. Both stay in sync.
 
-## Try the replay in 60 seconds
-
-Node.js only; no keypad, Codex account, or macOS required:
-
-```sh
-npm install
-npm run demo
-```
-
-Open the complete URL that prints in Terminal to watch a recorded supervision session play back live.
+**No hardware? [Try the 60-second replay](#no-hardware-try-the-replay-in-60-seconds).**
 
 ## Logitech MX Creative Keypad
 
@@ -46,6 +37,17 @@ The default profile is registered under **Terminal**, not as a separate Vizhi ap
 When Vizhi first loads, it installs a small bundled local hook into `~/.codex/config.toml` and creates a one-time backup at `~/.codex/config.toml.vizhi.bak`. Restart any already-running Codex session. At Codex's one-time hook-trust prompt, review the hooks and choose **Trust all and continue** to enable the live Grid.
 
 Start or resume Codex normally in Terminal.app. New sessions appear on the earliest free session key as soon as Codex starts; Logi Plugin Service handles keypad actions automatically.
+
+## No hardware? Try the replay in 60 seconds
+
+Node.js only; no keypad, Codex account, or macOS required:
+
+```sh
+npm install
+npm run demo
+```
+
+Open the complete URL that prints in Terminal to watch a recorded supervision session play back live.
 
 ## Browser dashboard (optional)
 
