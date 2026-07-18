@@ -4,6 +4,8 @@
 
 Vizhi is live supervision for Codex CLI sessions in two places: a **Logitech MX Creative Keypad** plugin and a **local browser dashboard**. See each session's state at a glance, then approve, interrupt, redirect, or add context with a key press. It is designed for macOS and Terminal.app; the browser dashboard does not require a keypad.
 
+**Choose your surface:** use the Logitech MX Creative Keypad for instant tactile controls, or open the local browser dashboard for a full live view—Vizhi keeps both in sync.
+
 **Try the replay in 60 seconds** — Node.js only; no keypad, Codex account, or macOS required:
 
 ```sh
@@ -35,7 +37,7 @@ GPT-5.6 was used in Codex for high-reasoning architecture and safety reviews, es
 - Only when building the plugin yourself: the .NET 10 SDK and `logiplugintool` from the Logi Actions SDK.
 - Only for physical offline Voice: `whisper-cli` once (for example, `brew install whisper-cpp`). Vizhi installs its helper automatically and asks before downloading its local Whisper model.
 
-## Keypad install
+## Logitech MX Creative Keypad
 
 For normal keypad use, install the plugin once. You do not need `npm`, `npm run router`, or a separate background Terminal window.
 
@@ -63,7 +65,7 @@ Start or resume Codex normally in Terminal.app. New sessions appear on the earli
 
 Two approvals cannot and should not be automated: Codex asks you to trust Vizhi's local hooks, and macOS may ask Logi Plugin Service for Accessibility or Terminal Automation permission. Approve them only after confirming Vizhi is installed.
 
-## Optional browser dashboard
+## Browser dashboard (optional)
 
 The browser dashboard is optional. When the keypad plugin is installed and loaded, it uses the plugin's built-in local action service:
 
@@ -81,7 +83,7 @@ node dist/cli.js install-codex-hooks
 npm run router
 ```
 
-## Permissions in plain terms
+## Permissions
 
 Vizhi does not need an administrator password, Full Disk Access, Input Monitoring, or access to a cloud account. The live Grid only needs Codex hook trust. macOS asks for further access only when you use features that control Terminal, type keys, record Voice, or capture a screenshot.
 
@@ -199,7 +201,7 @@ The Session Library is browser-only. It shows recent completed Codex sessions an
 npm test
 ```
 
-## Logitech MX Creative Keypad
+## Keypad controls and development
 
 ### Included default profile
 
