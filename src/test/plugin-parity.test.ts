@@ -1,0 +1,86 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import test from "node:test";
+import { DEFAULT_PROMPT_TEMPLATES, PROMPT_TEMPLATE_IDS } from "../prompt-template.js";
+import { startServer } from "../server.js";
+import { StateStore } from "../state-store.js";
+import { TERMINAL_KEYS } from "../types.js";
+
+function captures(source: string, expression: RegExp): string[] {
+  return [...source.matchAll(expression)].map((match) => match[1]);
+}
+
+async function pluginSource(path: string): Promise<string> {
+  return readFile(fileURLToPath(new URL(`../../VizhiPlugin/src/${path}`, import.meta.url)), "utf8");
+}
+
+test("keeps browser controls aligned with keypad actions, navigation, and templates", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vizhi-parity-"));
+  const originalTemplatePath = process.env.VIZHI_PROMPT_TEMPLATE_PATH;
+  process.env.VIZHI_PROMPT_TEMPLATE_PATH = join(root, "prompt-templates.json");
+  context.after(() => {
+    if (originalTemplatePath === undefined) delete process.env.VIZHI_PROMPT_TEMPLATE_PATH;
+    else process.env.VIZHI_PROMPT_TEMPLATE_PATH = originalTemplatePath;
+  });
+  context.after(() => rm(root, { recursive: true, force: true }));
+
+  const [gridCommands, runtime, templateCatalog] = await Promise.all([
+    pluginSource("Actions/GridSlotCommands.cs"),
+    pluginSource("Core/VizhiRuntime.cs"),
+    pluginSource("Helpers/TemplateCatalog.cs"),
+  ]);
+  const contextCommands = gridCommands.slice(
+    gridCommands.indexOf("public sealed class ContextCommand"),
+    gridCommands.indexOf("public sealed class UsageCommand"),
+  );
+  const navigationCommands = gridCommands.slice(
+    gridCommands.indexOf("public sealed class NavigationCommand"),
+    gridCommands.indexOf("public sealed class ContextCommand"),
+  );
+  const keypadActions = new Set([
+    ...captures(gridCommands, /: base\("[^"]+", "[^"]+", "([a-z_]+)"/g),
+    ...captures(gridCommands, /WriteAction\("([a-z_]+)"/g),
+    ...captures(contextCommands, /new NavigationDefinition\("([a-z_]+)"/g),
+    ...captures(runtime, /type = "([a-z_]+)"/g),
+    ...captures(runtime, /StateReader\.WriteAction\("([a-z_]+)"/g),
+  ]);
+  const expectedActions = [
+    "approve", "deny", "interrupt", "compact", "new_session", "exit", "model", "mode", "agent", "fork",
+    "favorite", "clipboard", "screenshot", "focus", "voice", "new_terminal", "key", "prompt_template",
+  ];
+  assert.deepEqual([...keypadActions].sort(), [...expectedActions].sort());
+  assert.deepEqual(captures(navigationCommands, /new NavigationDefinition\("([a-z_]+)"/g).sort(), [...TERMINAL_KEYS].sort());
+
+  const keypadTemplates = [...templateCatalog.matchAll(/new TemplateDefinition\("([a-z_]+)", "([^"]+)", "([^"]+)"/g)]
+    .map((match) => ({ id: match[1], label: match[2], group: match[3] }));
+  assert.deepEqual(keypadTemplates, PROMPT_TEMPLATE_IDS.map((id) => ({
+    id,
+    label: DEFAULT_PROMPT_TEMPLATES[id].label,
+    group: DEFAULT_PROMPT_TEMPLATES[id].group,
+  })));
+
+  const store = new StateStore(root);
+  const server = await startServer(store, 0);
+  context.after(() => server.close());
+  const base = `http://127.0.0.1:${server.port}`;
+  const page = await fetch(`${base}/?token=${server.token}`).then((response) => response.text());
+  for (const action of expectedActions) {
+    if (action === "voice") assert.match(page, /queueAction\(\{type:'voice'/);
+    else assert.match(page, new RegExp(`data-action="${action}"`));
+  }
+  for (const key of TERMINAL_KEYS) assert.match(page, new RegExp(`data-key="${key}"`));
+  assert.match(page, /Selected session · Live usage/);
+  assert.match(page, /data-action="focus"/);
+  assert.match(page, /id="voice"/);
+
+  const templates = await fetch(`${base}/api/templates`, { headers: { "x-vizhi-token": server.token } })
+    .then((response) => response.json()) as Array<{ id: string; label: string; group: string }>;
+  assert.deepEqual(templates, PROMPT_TEMPLATE_IDS.map((id) => ({
+    id,
+    label: DEFAULT_PROMPT_TEMPLATES[id].label,
+    group: DEFAULT_PROMPT_TEMPLATES[id].group,
+  })));
+});

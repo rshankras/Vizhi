@@ -1,0 +1,23 @@
+{
+  "name": "vizhi",
+  "version": "3.9.11",
+  "private": true,
+  "type": "module",
+  "description": "Local mission control for coding agents.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "start": "npm run build && node dist/cli.js serve",
+    "demo": "npm run build && node dist/cli.js serve --demo",
+    "router": "npm run build && node dist/cli.js router",
+    "prompt:set": "npm run build && node dist/cli.js set-prompt-template",
+    "prompt:favorite": "npm run build && node dist/cli.js set-favorite-template",
+    "plugin:build": "bash tools/plugin-build.sh",
+    "plugin:dev": "bash tools/plugin-build.sh /p:InstallPluginOnBuild=true",
+    "plugin:package": "bash tools/package-plugin.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  }
+}
