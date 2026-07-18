@@ -233,6 +233,7 @@ namespace Loupedeck.VizhiPlugin
         private static readonly Object Sync = new Object();
         private static readonly List<IRefreshableCommand> Commands = new List<IRefreshableCommand>();
         private static readonly VizhiStateReader StateReader = new VizhiStateReader();
+        private static readonly VizhiActionRouter ActionRouter = new VizhiActionRouter();
         private static readonly Dictionary<Int32, GridSlotState> Slots = new Dictionary<Int32, GridSlotState>();
         private static readonly HashSet<String> PendingScreenshotDrafts = new HashSet<String>(StringComparer.Ordinal);
         private static Timer _refreshTimer;
@@ -247,6 +248,7 @@ namespace Loupedeck.VizhiPlugin
                 if (_refreshTimer != null) return;
                 Refresh(null);
                 _refreshTimer = new Timer(Refresh, null, 500, 500);
+                ActionRouter.Start();
             }
         }
 
@@ -256,6 +258,7 @@ namespace Loupedeck.VizhiPlugin
             {
                 _refreshTimer?.Dispose();
                 _refreshTimer = null;
+                ActionRouter.Stop();
                 Commands.Clear();
                 Slots.Clear();
                 PendingScreenshotDrafts.Clear();

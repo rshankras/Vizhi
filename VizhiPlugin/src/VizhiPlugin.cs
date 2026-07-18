@@ -4,9 +4,9 @@ namespace Loupedeck.VizhiPlugin
 
     public class VizhiPlugin : Plugin
     {
-        public override Boolean UsesApplicationApiOnly => true;
+        public override Boolean UsesApplicationApiOnly => false;
 
-        public override Boolean HasNoApplication => true;
+        public override Boolean HasNoApplication => false;
 
         public VizhiPlugin()
         {
@@ -16,6 +16,7 @@ namespace Loupedeck.VizhiPlugin
 
         public override void Load()
         {
+            VizhiCodexIntegration.EnsureInstalled();
             VizhiRuntime.Start();
         }
 

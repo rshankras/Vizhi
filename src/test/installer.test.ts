@@ -18,6 +18,7 @@ test("appends one backup-safe Vizhi hooks block to Codex config", async (context
   const backup = await readFile(`${configPath}.vizhi.bak`, "utf8");
   assert.equal((config.match(/# >>> Vizhi hooks >>>/g) ?? []).length, 1);
   assert.match(config, /\[\[hooks\.PermissionRequest\]\]/);
-  assert.match(config, /codex-hook\.sh PermissionRequest/);
+  assert.match(config, /\[\[hooks\.PermissionRequest\.hooks\]\]/);
+  assert.match(config, /codex-hook\.sh' PermissionRequest/);
   assert.equal(backup, 'model = "test"\n');
 });

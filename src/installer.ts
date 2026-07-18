@@ -11,11 +11,23 @@ export interface CodexHookInstallOptions {
   hooksFile?: string;
 }
 
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
+function escapeToml(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+}
+
 function hookConfig(scriptPath: string): string {
   const tables = EVENTS.map((event) => [
     `[[hooks.${event}]]`,
     'matcher = "*"',
-    `hooks = [{ type = "command", command = "${scriptPath} ${event}", timeout = 5 }]`,
+    "",
+    `[[hooks.${event}.hooks]]`,
+    'type = "command"',
+    `command = "${escapeToml(`${shellQuote(scriptPath)} ${event}`)}"`,
+    "timeout = 5",
   ].join("\n")).join("\n\n");
   return `${BEGIN_MARKER}\n# Vizhi receives Codex lifecycle payloads on stdin and writes local IPC state.\n# Codex will request trust for these hooks on the next launch; approve normally.\n# Never use --dangerously-bypass-hook-trust.\n${tables}\n${END_MARKER}\n`;
 }
@@ -34,7 +46,7 @@ export async function installCodexHooks(cliPath: string, options: CodexHookInsta
   const hooksFile = options.hooksFile ?? join(home, ".codex", "config.toml");
   await mkdir(scriptsPath, { recursive: true });
   const hookPath = join(scriptsPath, "codex-hook.sh");
-  await writeFile(hookPath, `#!/bin/sh\nexec node ${JSON.stringify(cliPath)} hook --event "$1"\n`, { mode: 0o755 });
+  await writeFile(hookPath, `#!/bin/sh\nexec node ${shellQuote(cliPath)} hook --event "$1"\n`, { mode: 0o755 });
 
   const block = hookConfig(hookPath);
   await writeFile(join(home, ".vizhi", "codex-hooks.vizhi.toml"), block);

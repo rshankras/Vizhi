@@ -3,8 +3,14 @@ import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { ActionRouter, type ActionExecutor } from "../action-router.js";
+import { ActionRouter, shellQuote, type ActionExecutor } from "../action-router.js";
 import { createSession, StateStore } from "../state-store.js";
+
+test("quotes shell arguments without allowing quote breakout", () => {
+  assert.equal(shellQuote("plain path"), "'plain path'");
+  assert.equal(shellQuote("a'b"), "'a'\"'\"'b'");
+  assert.equal(shellQuote("$(unexpected)"), "'$(unexpected)'");
+});
 
 test("claims focus actions before executing them against the assigned terminal", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vizhi-router-"));

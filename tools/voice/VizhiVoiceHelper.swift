@@ -19,6 +19,7 @@ let modelPath = argument("--model") ?? "\(home)/.vizhi/voice/models/ggml-base.en
 let transcriptPath = argument("--transcript") ?? "\(temporaryPath)/transcript.txt"
 let stopPath = argument("--stopflag") ?? "\(temporaryPath)/recording.stop"
 let maximumSeconds = Double(argument("--maxsec") ?? "60") ?? 60
+let requestMicrophonePermissionOnly = CommandLine.arguments.contains("--request-microphone-permission")
 let fileManager = FileManager.default
 
 func whisperBinary() -> String? {
@@ -28,9 +29,6 @@ func whisperBinary() -> String? {
     }
     return nil
 }
-
-try? fileManager.removeItem(atPath: transcriptPath)
-try? fileManager.removeItem(atPath: stopPath)
 
 let permission = DispatchSemaphore(value: 0)
 var microphoneGranted = false
@@ -43,6 +41,10 @@ guard microphoneGranted else {
     log("microphone permission denied")
     exit(2)
 }
+if requestMicrophonePermissionOnly { exit(0) }
+
+try? fileManager.removeItem(atPath: transcriptPath)
+try? fileManager.removeItem(atPath: stopPath)
 
 let recordingUrl = URL(fileURLWithPath: recordingPath)
 let privateDirectoryAttributes: [FileAttributeKey: Any] = [.posixPermissions: NSNumber(value: 0o700)]

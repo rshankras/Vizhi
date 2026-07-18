@@ -181,8 +181,8 @@ end tell`;
   }
 }
 
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", "'\\\"'\\\"'")}'`;
+export function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\"'\"'")}'`;
 }
 
 function isAction(value: unknown): value is Action {

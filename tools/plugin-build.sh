@@ -17,4 +17,7 @@ if [[ -z "$dotnet_bin" ]]; then
   exit 1
 fi
 
+bash "$repo_root/tools/voice/build.sh" --package-only
+node "$repo_root/tools/generate-default-profile.mjs" "$repo_root/VizhiPlugin/src/package"
+
 exec "$dotnet_bin" build "$repo_root/VizhiPlugin/VizhiPlugin.sln" -c Debug "$@"
