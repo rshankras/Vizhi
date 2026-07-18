@@ -1,6 +1,30 @@
 # Vizhi
 
-Vizhi gives you live Codex session controls in two places: a Logitech MX Creative Keypad plugin and a local browser dashboard. It is designed for macOS and Terminal.app. The keypad plugin includes its own local action service: users do not run a router or keep a terminal process open.
+> **Vizhi (விழி)** — Tamil for *"eye."* Vizhi watches your Codex agents so you do not have to.
+
+Vizhi is live supervision for Codex CLI sessions in two places: a **Logitech MX Creative Keypad** plugin and a **local browser dashboard**. See each session's state at a glance, then approve, interrupt, redirect, or add context with a key press. It is designed for macOS and Terminal.app; the browser dashboard does not require a keypad.
+
+**Try the replay in 60 seconds** — Node.js only; no keypad, Codex account, or macOS required:
+
+```sh
+npm install
+npm run demo
+```
+
+Open the printed URL to watch a recorded supervision session play back live.
+
+## Built with Codex + GPT-5.6
+
+Vizhi was built for OpenAI Build Week through iterative Codex sessions. During the final implementation, the live session grid used to supervise terminal work also served as the project's own development control surface.
+
+Key design decisions developed with Codex:
+
+- **One local action pipeline.** The browser and keypad create the same normalized action records, so both surfaces deliver commands through one router instead of drifting into separate implementations.
+- **Safe file-queue delivery.** Actions are claimed by moving them into `actions/done/`; malformed records are quarantined and completed records expire. This prevents duplicate delivery and one bad action from blocking later input.
+- **TTY-verified approvals.** Before Vizhi sends an approval response, it verifies the target Terminal tab by TTY. That keeps an approval tied to the Codex session that requested it, even when sessions move between slots.
+- **Live Codex controls, not hardcoded choices.** Model, reasoning, mode, and approval controls open Codex's own current pickers rather than encoding an outdated list in the plugin.
+
+GPT-5.6 was used in Codex for high-reasoning architecture and safety reviews, especially around approval delivery, the local dashboard token model, and the shared action path. Routine UI, documentation, and parity work used lighter-weight iterative sessions. The primary Codex session ID is submitted through Devpost's `/feedback` flow.
 
 ## What you need
 
@@ -126,6 +150,23 @@ npm run demo
 
 Open the complete URL printed by the command. The replay needs only Node.js; it does not need a keypad, Codex, or macOS.
 
+## Related approaches
+
+Several projects are exploring ambient supervision for coding agents. Vizhi focuses on the Codex CLI workflow in Terminal.app and keeps the hardware optional.
+
+| Project | Integration surface | Supervision surface | How it differs from Vizhi |
+| --- | --- | --- | --- |
+| [Codex Micro](https://openai.com/supply/co-lab/work-louder/) | ChatGPT Codex and Work Louder Input | Custom 13-switch controller with real-time RGB agent state | Vizhi targets Codex CLI hooks in Terminal.app and works either on an existing Logitech keypad or in a browser. |
+| [AgentDeck](https://github.com/puritysb/AgentDeck) | Multi-agent bridge with hook- and PTY-based state | Stream Deck, mobile, display, and terminal surfaces | Vizhi is deliberately narrower: a focused Codex CLI workflow with a six-session LCD grid, TTY-verified approvals, and a browser fallback. |
+| [agent-deck](https://github.com/asheshgoplani/agent-deck) | Multiple terminal-based coding agents | Terminal TUI | Vizhi moves the status and response loop off the terminal while preserving Terminal.app as the execution surface. |
+| **Vizhi** | Codex CLI lifecycle hooks in Terminal.app | Logitech MX Creative Keypad or local browser dashboard | Project name, state, context percentage, risk-aware approvals, offline Voice, screenshot-plus-Voice context, and a local Session Library. |
+
+The common thread is that agent supervision matters. Vizhi's contribution is a lightweight physical-or-browser control loop for the Codex CLI environment people already use.
+
+## Lineage
+
+Vizhi is informed by [Claude Console](https://github.com/rshankras/claude-console), an earlier Logitech MX Creative Keypad controller for Claude Code. This Build Week project adds a Codex CLI adapter built on lifecycle hooks, a shared local action and state layer for keypad and browser controls, a multi-session risk-aware grid, a browser dashboard and Session Library, screenshot-plus-Voice staged prompts, and a replayable demo. A Claude adapter on the new core remains a follow-up milestone.
+
 ## Local IPC
 
 This is technical detail for troubleshooting. Most users can skip it.
@@ -203,7 +244,7 @@ Create a distributable package with one repeatable build, pack, and verification
 npm run plugin:package
 ```
 
-It writes `VizhiPlugin/bin/Vizhi_3.10.4.lplug4`, including `profiles/DefaultProfile70.lp5`, the bundled Codex hook, and the physical Voice helper. Before publishing to Logi Marketplace, set real `supportPageUrl` and `homePageUrl` values in `VizhiPlugin/src/package/metadata/LoupedeckPackage.yaml`, add a repository `LICENSE` file, increment the semantic version, and test the package on physical supported hardware.
+It writes `VizhiPlugin/bin/Vizhi_3.10.4.lplug4`, including `profiles/DefaultProfile70.lp5`, the bundled Codex hook, and the physical Voice helper. The package version reflects pre-public development iterations rather than prior public Vizhi releases. Before publishing to Logi Marketplace, set real `supportPageUrl` and `homePageUrl` values in `VizhiPlugin/src/package/metadata/LoupedeckPackage.yaml`, increment the semantic version, and test the package on physical supported hardware.
 
 ### Embedded action service
 
