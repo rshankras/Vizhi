@@ -43,6 +43,40 @@ Create a distributable package with one repeatable build, pack, and verification
 npm run plugin:package
 ```
 
-The result is written as `VizhiPlugin/bin/Vizhi_<version>.lplug4`, including the default profile, bundled Codex hook, and physical Voice helper. The package version reflects pre-public development iterations rather than prior public Vizhi releases.
+The result is written as `VizhiPlugin/bin/Vizhi_<version>.lplug4`, including the default profile, bundled Codex hook, and physical Voice helper.
 
-Before publishing to Logi Marketplace, set real `supportPageUrl` and `homePageUrl` values in `VizhiPlugin/src/package/metadata/LoupedeckPackage.yaml`, increment the semantic version, and test the package on supported physical hardware.
+## Create a release
+
+For a public release, use the release command instead of copying a build manually:
+
+```sh
+npm run plugin:release
+```
+
+It builds and verifies the package, copies it to `release/v<version>/`, writes a SHA-256 checksum, and removes only older local `.lplug4` artifacts from `VizhiPlugin/bin/`. It never commits, tags, pushes, or changes installed plugins.
+
+Before publishing to Logi Marketplace, verify the support and home-page URLs in `VizhiPlugin/src/package/metadata/LoupedeckPackage.yaml`, increment the semantic version, and test the package on supported physical hardware.
+
+## Uninstall and cleanup
+
+For a normal Logi Options+ installation, remove Vizhi in Logi Options+ first, then clean up the local Vizhi integration from this source checkout:
+
+```sh
+npm run plugin:cleanup
+```
+
+For a local SDK installation, the following also asks `logiplugintool` to remove the Vizhi package:
+
+```sh
+npm run plugin:uninstall
+```
+
+Both commands compile only the TypeScript cleanup CLI; they do not build or package a `.lplug4` file. They delete only Vizhi's marked Codex-hook block, remove local hook files and the physical Voice helper/model, clear `/tmp/vizhi` runtime state, and reset the separate `Vizhi Voice Helper` microphone authorization. Custom prompt templates and the `config.toml.vizhi.bak` backup remain by default.
+
+To remove custom prompt templates too, run:
+
+```sh
+npm run plugin:cleanup -- --purge
+```
+
+The script intentionally does not revoke Accessibility, Automation, or Screen & System Audio Recording for `LogiPluginService`: those are permissions for Logi's shared host service and may be used by other Logi plugins. See the [permission cleanup steps](permissions.md#removing-vizhi) when you no longer use any of those actions.

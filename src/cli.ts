@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { ActionRouter, MacTerminalExecutor } from "./action-router.js";
 import { DemoPlayer } from "./demo.js";
 import { CodexHookAdapter } from "./hook-adapter.js";
-import { installCodexHooks } from "./installer.js";
+import { installCodexHooks, uninstallCodexHooks } from "./installer.js";
 import { defaultPromptTemplatePath, isPromptTemplateId, writeFavoriteTemplateId, writePromptTemplateForId } from "./prompt-template.js";
 import { startServer } from "./server.js";
 import { StateStore } from "./state-store.js";
@@ -57,6 +57,11 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "uninstall-codex-hooks") {
+    process.stdout.write(`${await uninstallCodexHooks({ hooksFile: option(args, "--hooks-file"), purge: args.includes("--purge") })}\n`);
+    return;
+  }
+
   if (command === "router") {
     if (process.platform !== "darwin") throw new Error("The live Terminal action router requires macOS.");
     const router = new ActionRouter(store, new MacTerminalExecutor(ipcRoot));
@@ -79,7 +84,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  throw new Error("Usage: vizhi <serve [--demo] | router | hook --event EventName | install-codex-hooks | set-prompt-template [--id TemplateId] --label <Label> --prompt <Text> | set-favorite-template --id TemplateId>");
+  throw new Error("Usage: vizhi <serve [--demo] | router | hook --event EventName | install-codex-hooks | uninstall-codex-hooks [--purge] | set-prompt-template [--id TemplateId] --label <Label> --prompt <Text> | set-favorite-template --id TemplateId>");
 }
 
 main().catch((error) => {

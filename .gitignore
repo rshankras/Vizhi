@@ -3,6 +3,8 @@ dist/
 .DS_Store
 SPEC.md
 *.lplug4
+!release/
+!release/**/*.lplug4
 VizhiPlugin/src/package/profiles/*.lp5
 VizhiPlugin/src/package/voice/
 tools/voice/VizhiVoiceHelper.app/

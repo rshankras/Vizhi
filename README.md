@@ -20,23 +20,35 @@ For normal keypad use, install the plugin once. You do **not** need `npm`, `npm 
 
 ### 1. Install Vizhi
 
-Install Vizhi from the Logi Marketplace when it is published. For a local build, open the `.lplug4` package with Logi Options+ or run:
+Install Vizhi from the Logi Marketplace when it is published. The first public release is [Vizhi 1.0.0](release/v1.0.0/README.md). After cloning this repository, open its `.lplug4` package with Logi Options+ or run:
 
 ```sh
-logiplugintool install VizhiPlugin/bin/Vizhi_3.10.4.lplug4
+logiplugintool install release/v1.0.0/Vizhi_1.0.0.lplug4
 ```
 
-The package includes the default six-session profile with Yes, No, Voice, commands, prompts, navigation, and Git pages. No individual actions need to be dragged onto keys.
+The package includes the default six-session profile with Yes, No, Voice, Navigate, Prompts, Commands, and Git pages. Its nine Commands keys are Compact, Esc, Model, New, Favorite, Agent, Fork, Exit, and Show Actions Ring. No individual actions need to be dragged onto keys.
 
 ### 2. Use Vizhi under Terminal
 
-The default profile is registered under **Terminal**, not as a separate Vizhi application. When Terminal.app is frontmost, Logi Options+ selects the Terminal profile automatically. If you have several Terminal profiles, choose **Vizhi** under Terminal once; Logi keeps that choice and your custom profiles.
+The Vizhi profile is linked to **Terminal**, not to a standalone Vizhi process. Logi Options+ identifies the profile with Vizhi's eye icon in the app strip; Terminal.app remains the app that activates it. When Terminal.app is frontmost, Logi Options+ selects the Vizhi profile automatically. If you have several Terminal profiles, choose **Vizhi** under Terminal once; Logi keeps that choice and your custom profiles.
+
+An update does not overwrite a customized Vizhi profile. New installs receive the packaged layout; adjust an existing layout in Logi Options+ when you want to adopt a newer default key arrangement.
 
 ### 3. Start Codex normally
 
 When Vizhi first loads, it installs a small bundled local hook into `~/.codex/config.toml` and creates a one-time backup at `~/.codex/config.toml.vizhi.bak`. Restart any already-running Codex session. At Codex's one-time hook-trust prompt, review the hooks and choose **Trust all and continue** to enable the live Grid.
 
 Start or resume Codex normally in Terminal.app. New sessions appear on the earliest free session key as soon as Codex starts; Logi Plugin Service handles keypad actions automatically.
+
+### Uninstall Vizhi
+
+Remove Vizhi in Logi Options+ to remove the plugin. For an optional complete local cleanup, run this from the Vizhi source checkout to remove Vizhi's hooks, local Voice files, and temporary state without creating a `.lplug4` package:
+
+```sh
+npm run plugin:cleanup
+```
+
+This resets the separate Vizhi Voice Helper microphone permission and preserves custom prompt templates plus the one-time Codex config backup. The optional cleanup command requires the source checkout; LogiPluginService Accessibility, Automation, and Screen Recording permissions are shared with other Logitech actions, so Vizhi never revokes them automatically. See [Permissions](docs/permissions.md#removing-vizhi) for the safe manual cleanup steps. For a local SDK installation, `npm run plugin:uninstall` also removes the plugin through `logiplugintool`.
 
 ## No hardware? Try the replay in 60 seconds
 

@@ -30,6 +30,12 @@ Select a session card, then use its controls for `Yes`, `No`, `Esc`, `Compact`, 
 
 `Fork` starts `codex fork` in a new Terminal tab using the selected session's project directory. `New Tab` and `New Window` open plain Terminal shells in that directory. The live usage panel shows context, cost, model, and reasoning. Browser-issued commands return you to the dashboard; use `Open Terminal` only when you want to stay in the selected Codex tab.
 
+## Keypad parity
+
+The dashboard and keypad create the same local action records for every session-affecting control: approvals, Voice text, interrupt, Codex controls, terminal navigation, context, prompt templates, and Git workflows. They therefore operate on the same focused session and update from the same live state.
+
+`Show Actions Ring` is intentionally hardware-only: it opens Logitech's native contextual action ring, while the browser already exposes Vizhi's controls directly. The browser includes `Mode` directly; the packaged keypad profile uses its ninth Commands key for Show Actions Ring, but `Mode` remains assignable in Logi Options+.
+
 ## Prompt, Voice, and Screenshot
 
 The prompt box sends its text to the selected Codex session. Browser `Voice` uses the browser's speech-recognition support when available and sends the completed transcript immediately, matching the physical Voice key. Typed prompts work in every supported browser.

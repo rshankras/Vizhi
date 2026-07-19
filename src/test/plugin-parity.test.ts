@@ -17,6 +17,10 @@ async function pluginSource(path: string): Promise<string> {
   return readFile(fileURLToPath(new URL(`../../VizhiPlugin/src/${path}`, import.meta.url)), "utf8");
 }
 
+async function repositorySource(path: string): Promise<string> {
+  return readFile(fileURLToPath(new URL(`../../${path}`, import.meta.url)), "utf8");
+}
+
 test("keeps browser controls aligned with keypad actions, navigation, and templates", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vizhi-parity-"));
   const originalTemplatePath = process.env.VIZHI_PROMPT_TEMPLATE_PATH;
@@ -27,10 +31,12 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   });
   context.after(() => rm(root, { recursive: true, force: true }));
 
-  const [gridCommands, runtime, templateCatalog] = await Promise.all([
+  const [gridCommands, runtime, templateCatalog, profileGenerator, applicationLink] = await Promise.all([
     pluginSource("Actions/GridSlotCommands.cs"),
     pluginSource("Core/VizhiRuntime.cs"),
     pluginSource("Helpers/TemplateCatalog.cs"),
+    repositorySource("tools/generate-default-profile.mjs"),
+    pluginSource("VizhiApplication.cs"),
   ]);
   const contextCommands = gridCommands.slice(
     gridCommands.indexOf("public sealed class ContextCommand"),
@@ -53,6 +59,20 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   ];
   assert.deepEqual([...keypadActions].sort(), [...expectedActions].sort());
   assert.deepEqual(captures(navigationCommands, /new NavigationDefinition\("([a-z_]+)"/g).sort(), [...TERMINAL_KEYS].sort());
+  assert.deepEqual(
+    captures(profileGenerator, /page\("[A-F0-9]+", "([^"]+)", \[/g),
+    ["Sessions", "Navigate", "Prompts", "Commands", "Git"],
+  );
+  assert.match(
+    profileGenerator,
+    /page\("E5B064CC1B484AE3BC0225475EAB1B02", "Commands", \[[\s\S]*?showActionsRingAction,/,
+  );
+  assert.match(profileGenerator, /\$@Generic___Loupedeck\.GenericPlugin\.ShowRadialMenuDynamicAction/);
+  assert.match(profileGenerator, /const profileApplicationName = "@_vizhi";/);
+  assert.match(profileGenerator, /applicationName: profileApplicationName,/);
+  assert.match(profileGenerator, /name: profileApplicationName,/);
+  assert.match(profileGenerator, /processOrBundleName: null,/);
+  assert.match(applicationLink, /GetBundleName\(\) => "com\.apple\.Terminal";/);
 
   const keypadTemplates = [...templateCatalog.matchAll(/new TemplateDefinition\("([a-z_]+)", "([^"]+)", "([^"]+)"/g)]
     .map((match) => ({ id: match[1], label: match[2], group: match[3] }));

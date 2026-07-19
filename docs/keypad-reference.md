@@ -4,7 +4,7 @@
 
 ## Default profile
 
-The packaged Vizhi profile provides five ready-to-use pages. The first page contains the six Session capacity keys, left to right and top to bottom, plus fixed `Yes`, `No`, and `Voice` controls on the bottom row. The remaining pages contain Commands, Prompts, Navigate, and Git controls. You can customize a copy in Logi Options+ without changing the packaged default.
+The packaged Vizhi profile provides five ready-to-use pages in this order: Sessions, Navigate, Prompts, Commands, and Git. The first page contains the six Session capacity keys, left to right and top to bottom, plus fixed `Yes`, `No`, and `Voice` controls on the bottom row. You can customize a copy in Logi Options+ without changing the packaged default.
 
 The Session keys are capacity keys, not permanently assigned terminals. The first active Codex session uses Session 1, the next uses Session 2, and remaining sessions move forward when one exits. A black key means no session is available. Each occupied key shows the project name and context percentage:
 
@@ -17,7 +17,8 @@ The six Session keys plus fixed `Yes`, `No`, and `Voice` controls form the prima
 
 ## Control pages
 
-- **Vizhi Commands:** `Esc` interrupts the selected session, `Compact` sends `/compact`, `New` sends `/new`, `Exit` sends Codex's `/exit` without deleting the saved session, `Fork` starts `codex fork` in a new Terminal tab, `Model` opens Codex's live model and reasoning picker, `Mode` opens Codex's live mode and approval picker, and `Agent` opens Codex's `/agent` picker. `Favorite` runs the selected prompt template. Vizhi does not hardcode model, reasoning, or approval-mode choices.
+- **Vizhi Commands:** `Esc` interrupts the selected session, `Compact` sends `/compact`, `New` sends `/new`, `Exit` sends Codex's `/exit` without deleting the saved session, `Fork` starts `codex fork` in a new Terminal tab, `Model` opens Codex's live model and reasoning picker, `Mode` opens Codex's live mode and approval picker, and `Agent` opens Codex's `/agent` picker. `Favorite` runs the selected prompt template. `Show Actions Ring` opens Logitech's contextual action ring. Vizhi does not hardcode model, reasoning, or approval-mode choices.
+- **Default Commands page:** its nine positions are Compact, Esc, Model, New, Favorite, Agent, Fork, Exit, and Show Actions Ring. `Mode` and `Usage` are still available from the Vizhi action groups in Logi Options+ if you want to replace a default key.
 - **Vizhi Terminal:** `New Tab` and `New Window` open plain Terminal shells in the selected session's project directory, or in your home directory when no session is selected. They do not start Codex automatically.
 - **Vizhi Navigate:** `Tab`, `Up`, `Down`, `Enter`, `Page Up`, and `Page Down` send matching keys to the selected Terminal.app session. Use `Up`, `Down`, and `Enter` for Codex Model and Mode pickers. `Tab` cannot accept Codex's gray placeholder text because it is not an inline suggestion.
 - **Vizhi Context:** `Clipboard` pastes the current macOS text clipboard into the selected session. `Screenshot` opens the macOS area selector, saves a PNG under `/tmp/vizhi/captures/`, and stages its path in the prompt. Its key changes to `Draft`; add Voice context to send both together, or type context and press `Enter`.

@@ -5,8 +5,7 @@ import { basename, join, resolve } from "node:path";
 
 const profileName = "9FC71D9CD70C4C1CA3E776D893217E8D";
 const workspaceName = "A7634D8FC4EE4AE6A049C90A9A7E81A7";
-const terminalApplicationName = "com.apple.terminal";
-const terminalBundleName = "com.apple.Terminal";
+const profileApplicationName = "@_vizhi";
 
 function readVersion(metadataPath) {
   const content = readFileSync(metadataPath, "utf8");
@@ -38,6 +37,8 @@ function action(command, parameter) {
   return `$Vizhi___Loupedeck.VizhiPlugin.${command}${parameter ? `___${parameter}` : ""}`;
 }
 
+const showActionsRingAction = "$@Generic___Loupedeck.GenericPlugin.ShowRadialMenuDynamicAction";
+
 function profileInfo() {
   const pages = [
     page("F6F9A8E9B8B44852A3B454AF4C439A01", "Sessions", [
@@ -51,16 +52,16 @@ function profileInfo() {
       action("DenyFocusedCommand"),
       action("VoiceCommand"),
     ]),
-    page("E5B064CC1B484AE3BC0225475EAB1B02", "Commands", [
-      action("CompactSessionCommand"),
-      action("InterruptSessionCommand"),
-      action("ModelSessionCommand"),
-      action("NewSessionCommand"),
-      action("FavoritePromptCommand"),
-      action("AgentSessionCommand"),
-      action("ForkSessionCommand"),
-      action("ExitSessionCommand"),
-      null,
+    page("A29EC2E0DACA4AFAAAEFD7B372B58304", "Navigate", [
+      action("NavigationCommand", "down"),
+      action("NavigationCommand", "enter"),
+      action("NavigationCommand", "page_down"),
+      action("NavigationCommand", "page_up"),
+      action("NavigationCommand", "up"),
+      action("ContextCommand", "clipboard"),
+      action("ContextCommand", "screenshot"),
+      action("NewTerminalTabCommand"),
+      action("NewTerminalWindowCommand"),
     ]),
     page("2F4EDB77C9C443B1B7CD6D6B9C247C03", "Prompts", [
       action("TemplateCommand", "explain"),
@@ -73,16 +74,16 @@ function profileInfo() {
       action("TemplateCommand", "handoff"),
       action("TemplateCommand", "safe_revert"),
     ]),
-    page("A29EC2E0DACA4AFAAAEFD7B372B58304", "Navigate", [
-      action("NavigationCommand", "down"),
-      action("NavigationCommand", "enter"),
-      action("NavigationCommand", "page_down"),
-      action("NavigationCommand", "page_up"),
-      action("NavigationCommand", "up"),
-      action("ContextCommand", "clipboard"),
-      action("ContextCommand", "screenshot"),
-      action("NewTerminalTabCommand"),
-      action("NewTerminalWindowCommand"),
+    page("E5B064CC1B484AE3BC0225475EAB1B02", "Commands", [
+      action("CompactSessionCommand"),
+      action("InterruptSessionCommand"),
+      action("ModelSessionCommand"),
+      action("NewSessionCommand"),
+      action("FavoritePromptCommand"),
+      action("AgentSessionCommand"),
+      action("ForkSessionCommand"),
+      action("ExitSessionCommand"),
+      showActionsRingAction,
     ]),
     page("63AFD7F73F8B47D6935C94D8B0E94A05", "Git", [
       action("TemplateCommand", "commit"),
@@ -104,11 +105,11 @@ function profileInfo() {
     displayName: "Vizhi",
     description: "Live Codex sessions and controls.",
     deviceType: "Loupedeck70",
-    applicationName: terminalApplicationName,
+    applicationName: profileApplicationName,
     nativePluginName: "Vizhi",
     hasNativePlugin: true,
     additionalNativePluginNames: ["DefaultMac"],
-    lastModifiedTimeUtc: "2026-07-18T00:00:00.000000Z",
+    lastModifiedTimeUtc: "2026-07-19T00:00:00.000000Z",
     profileSettings: {
       $type: "Loupedeck.DictionaryNoCase`1[[System.String, System.Private.CoreLib]], PluginApi",
     },
@@ -154,13 +155,13 @@ function profileInfo() {
 function applicationInfo() {
   return {
     $type: "Loupedeck.Service.SupportedApplicationInfo, LoupedeckService",
-    name: terminalApplicationName,
-    displayName: "Terminal",
+    name: profileApplicationName,
+    displayName: "Vizhi",
     description: "Vizhi Codex sessions and controls for Terminal.app.",
     deviceType: "Loupedeck70",
     nativePluginName: "Vizhi",
     hasNativePlugin: true,
-    processOrBundleName: terminalBundleName,
+    processOrBundleName: null,
     modes: [{
       $type: "Loupedeck.Service.ApplicationMode, LoupedeckService",
       name: "main",

@@ -1,6 +1,6 @@
 {
   "name": "vizhi",
-  "version": "3.10.4",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Local mission control for coding agents.",
@@ -14,7 +14,10 @@
     "prompt:favorite": "npm run build && node dist/cli.js set-favorite-template",
     "plugin:build": "bash tools/plugin-build.sh",
     "plugin:dev": "bash tools/plugin-build.sh /p:InstallPluginOnBuild=true",
-    "plugin:package": "bash tools/package-plugin.sh"
+    "plugin:package": "bash tools/package-plugin.sh",
+    "plugin:release": "bash tools/release-plugin.sh",
+    "plugin:uninstall": "npm run build && bash tools/plugin-uninstall.sh",
+    "plugin:cleanup": "npm run build && bash tools/plugin-uninstall.sh --cleanup-only"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -56,3 +56,17 @@ The first physical Voice press asks before downloading the one-time local Whispe
 <img src="images/permissions/voice-microphone.png" alt="VizhiVoiceHelper asks for microphone access" width="420">
 
 Screen Recording is not shown above because macOS requests it only when you tap Screenshot.
+
+## Removing Vizhi
+
+Uninstall Vizhi itself in Logi Options+, then run `npm run plugin:cleanup` from the Vizhi source checkout. It removes the marked Codex hook block, local hook files, offline Voice helper/model, temporary runtime state, and the separate `Vizhi Voice Helper` microphone authorization. Add `-- --purge` only if you also want to remove saved prompt templates.
+
+Accessibility, Terminal Automation, System Events Automation, and Screen & System Audio Recording are attributed to **LogiPluginService**, which is Logi's shared host service rather than the Vizhi package. Vizhi must not revoke them automatically because doing so could break other Logitech plugins.
+
+If you no longer use any Logi actions that need those permissions, remove them manually in **System Settings → Privacy & Security**:
+
+- In **Accessibility**, turn off **LogiPluginService**.
+- In **Automation**, turn off its access to **Terminal** and **System Events**.
+- In **Screen & System Audio Recording**, turn off **LogiPluginService** if it appears.
+
+Do not run broad `tccutil reset All`, `tccutil reset Accessibility`, or `tccutil reset AppleEvents` commands: they can reset unrelated applications' permissions too.
