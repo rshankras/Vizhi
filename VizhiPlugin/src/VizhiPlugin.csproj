@@ -38,8 +38,10 @@
   <Target Name="CopyPackage" AfterTargets="PostBuildEvent">
     <Message Text="📦 Copying package files..." Importance="High" />
     <RemoveDir Directories="$(OutputPath)..\icontemplates" />
+    <RemoveDir Directories="$(OutputPath)..\profiles" />
     <ItemGroup>
-      <PackageFiles Include="package\**\*" />
+      <PackageFiles Include="package\**\*" Exclude="package\profiles\*.lp5" />
+      <PackageFiles Include="package\profiles\DefaultProfile70.lp5" />
     </ItemGroup>
     <Copy SourceFiles="@(PackageFiles)" DestinationFolder="$(OutputPath)..\%(RecursiveDir)" />
     <Message Text="✅ Package files copied to $(OutputPath)..\" Importance="High" />

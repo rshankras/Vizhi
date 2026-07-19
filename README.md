@@ -20,10 +20,10 @@ For normal keypad use, install the plugin once. You do **not** need `npm`, `npm 
 
 ### 1. Install Vizhi
 
-Install Vizhi from the Logi Marketplace when it is published. The first public release is [Vizhi 1.0.0](release/v1.0.0/README.md). After cloning this repository, open its `.lplug4` package with Logi Options+ or run:
+Install Vizhi from the Logi Marketplace when it is published. The latest release is [Vizhi 1.1.0](release/v1.1.0/README.md). After cloning this repository, open its `.lplug4` package with Logi Options+ or run:
 
 ```sh
-logiplugintool install release/v1.0.0/Vizhi_1.0.0.lplug4
+logiplugintool install release/v1.1.0/Vizhi_1.1.0.lplug4
 ```
 
 The package includes the default six-session profile with Yes, No, Voice, Navigate, Prompts, Commands, and Git pages. Its nine Commands keys are Compact, Esc, Model, New, Favorite, Agent, Fork, Exit, and Show Actions Ring. No individual actions need to be dragged onto keys.

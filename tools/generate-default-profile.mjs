@@ -6,6 +6,7 @@ import { basename, join, resolve } from "node:path";
 const profileName = "9FC71D9CD70C4C1CA3E776D893217E8D";
 const workspaceName = "A7634D8FC4EE4AE6A049C90A9A7E81A7";
 const profileApplicationName = "@_vizhi";
+const terminalBundleName = "com.apple.Terminal";
 
 function readVersion(metadataPath) {
   const content = readFileSync(metadataPath, "utf8");
@@ -38,6 +39,76 @@ function action(command, parameter) {
 }
 
 const showActionsRingAction = "$@Generic___Loupedeck.GenericPlugin.ShowRadialMenuDynamicAction";
+const staticActionIcons = [
+  { actionId: action("NavigationCommand", "down"), label: "Down", icon: "down" },
+  { actionId: action("NavigationCommand", "enter"), label: "Enter", icon: "enter" },
+  { actionId: action("NavigationCommand", "page_down"), label: "Page Down", icon: "pagedown" },
+  { actionId: action("NavigationCommand", "page_up"), label: "Page Up", icon: "pageup" },
+  { actionId: action("NavigationCommand", "up"), label: "Up", icon: "up" },
+  { actionId: action("ContextCommand", "clipboard"), label: "Clipboard", icon: "clipboard" },
+  { actionId: action("ContextCommand", "screenshot"), label: "Screenshot", icon: "capture" },
+  { actionId: action("NewTerminalTabCommand"), label: "New Tab", icon: "terminaltab" },
+  { actionId: action("NewTerminalWindowCommand"), label: "New Window", icon: "terminalwindow" },
+  { actionId: action("TemplateCommand", "explain"), label: "Explain", icon: "explain" },
+  { actionId: action("TemplateCommand", "fix_bug"), label: "Fix Bug", icon: "fixbug" },
+  { actionId: action("TemplateCommand", "refactor"), label: "Refactor", icon: "refactor" },
+  { actionId: action("TemplateCommand", "review"), label: "Review", icon: "review" },
+  { actionId: action("TemplateCommand", "security"), label: "Security", icon: "security" },
+  { actionId: action("TemplateCommand", "write_tests"), label: "Write Tests", icon: "tests" },
+  { actionId: action("TemplateCommand", "plan"), label: "Plan", icon: "plan" },
+  { actionId: action("TemplateCommand", "handoff"), label: "Handoff", icon: "handoff" },
+  { actionId: action("TemplateCommand", "safe_revert"), label: "Safe Revert", icon: "revert" },
+  { actionId: action("CompactSessionCommand"), label: "Compact", icon: "compact" },
+  { actionId: action("InterruptSessionCommand"), label: "Esc", icon: "interrupt" },
+  { actionId: action("ModelSessionCommand"), label: "Model", icon: "model" },
+  { actionId: action("NewSessionCommand"), label: "New", icon: "newsession" },
+  { actionId: action("FavoritePromptCommand"), label: "Favorite", icon: "favorite" },
+  { actionId: action("AgentSessionCommand"), label: "Agent", icon: "agent" },
+  { actionId: action("ForkSessionCommand"), label: "Fork", icon: "fork" },
+  { actionId: action("ExitSessionCommand"), label: "Exit", icon: "exit" },
+  { actionId: action("TemplateCommand", "commit"), label: "Commit", icon: "commit" },
+  { actionId: action("TemplateCommand", "create_pr"), label: "Create PR", icon: "createpr" },
+  { actionId: action("TemplateCommand", "diff"), label: "Diff", icon: "diff" },
+  { actionId: action("TemplateCommand", "log"), label: "Git Log", icon: "gitlog" },
+  { actionId: action("TemplateCommand", "push"), label: "Push", icon: "push" },
+  { actionId: action("TemplateCommand", "status"), label: "Status", icon: "status" },
+];
+
+function actionIconTemplate(label, iconPath) {
+  return {
+    backgroundColor: 0xFF000000,
+    items: [
+      {
+        image: readFileSync(iconPath).toString("base64"),
+        imageFileName: null,
+        imageColor: 0xffffffff,
+        imageRotation: "None",
+        isVisible: true,
+        itemType: "Image",
+        area: { x: 17, y: 0, width: 65, height: 65 },
+      },
+      {
+        text: label,
+        originalText: label,
+        textColor: 0xffffffff,
+        fontSize: 5,
+        fontName: "Brown Logitech Pan Light",
+        isVisible: true,
+        itemType: "Text",
+        area: { x: 0, y: 50, width: 100, height: 45 },
+      },
+    ],
+  };
+}
+
+function writeActionIcons(actionIconsDirectory, resourcesDirectory) {
+  mkdirSync(actionIconsDirectory, { recursive: true });
+  for (const definition of staticActionIcons) {
+    const iconPath = join(resourcesDirectory, `${definition.icon}.png`);
+    if (!existsSync(iconPath)) throw new Error(`Could not find action icon at ${iconPath}`);
+    writeJson(join(actionIconsDirectory, `${definition.actionId}.ict`), actionIconTemplate(definition.label, iconPath));
+  }
+}
 
 function profileInfo() {
   const pages = [
@@ -161,7 +232,7 @@ function applicationInfo() {
     deviceType: "Loupedeck70",
     nativePluginName: "Vizhi",
     hasNativePlugin: true,
-    processOrBundleName: null,
+    processOrBundleName: terminalBundleName,
     modes: [{
       $type: "Loupedeck.Service.ApplicationMode, LoupedeckService",
       name: "main",
@@ -185,11 +256,14 @@ function main() {
 
   const outputDirectory = join(packageRoot, "profiles");
   const outputPath = join(outputDirectory, "DefaultProfile70.lp5");
+  const resourcesDirectory = resolve(packageRoot, "..", "Resources", "icons");
   const temporaryDirectory = mkdtempSync(join(tmpdir(), "vizhi-default-profile-"));
   const metadataDirectory = join(temporaryDirectory, "metadata");
+  const actionIconsDirectory = join(temporaryDirectory, "ActionIcons");
 
   try {
     mkdirSync(metadataDirectory, { recursive: true });
+    writeActionIcons(actionIconsDirectory, resourcesDirectory);
     copyFileSync(iconPath, join(temporaryDirectory, "ApplicationIcon.png"));
     writeJson(join(temporaryDirectory, "ApplicationInfo.json"), applicationInfo());
     writeJson(join(temporaryDirectory, "ProfileInfo.json"), profileInfo());

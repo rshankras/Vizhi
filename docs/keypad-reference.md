@@ -6,6 +6,8 @@
 
 The packaged Vizhi profile provides five ready-to-use pages in this order: Sessions, Navigate, Prompts, Commands, and Git. The first page contains the six Session capacity keys, left to right and top to bottom, plus fixed `Yes`, `No`, and `Voice` controls on the bottom row. You can customize a copy in Logi Options+ without changing the packaged default.
 
+Fixed controls on Navigate, Prompts, Commands, and Git use opaque black icon templates so their labels and artwork match the Sessions page. Logitech's native `Show Actions Ring` keeps its own face.
+
 The Session keys are capacity keys, not permanently assigned terminals. The first active Codex session uses Session 1, the next uses Session 2, and remaining sessions move forward when one exits. A black key means no session is available. Each occupied key shows the project name and context percentage:
 
 - **Teal** means Ready.

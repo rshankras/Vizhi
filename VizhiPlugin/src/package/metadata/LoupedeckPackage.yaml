@@ -18,7 +18,7 @@ description: Live coding-agent session Grid for the Logitech MX Creative Keypad.
 pluginFileName: VizhiPlugin.dll
 
 # Plugin version.
-version: 1.0.0
+version: 1.1.0
 
 # Author of the plugin. The author can be a company or an individual developer.
 author: ravishankar

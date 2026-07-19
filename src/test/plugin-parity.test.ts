@@ -31,12 +31,13 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   });
   context.after(() => rm(root, { recursive: true, force: true }));
 
-  const [gridCommands, runtime, templateCatalog, profileGenerator, applicationLink] = await Promise.all([
+  const [gridCommands, runtime, templateCatalog, profileGenerator, applicationLink, pluginProject] = await Promise.all([
     pluginSource("Actions/GridSlotCommands.cs"),
     pluginSource("Core/VizhiRuntime.cs"),
     pluginSource("Helpers/TemplateCatalog.cs"),
     repositorySource("tools/generate-default-profile.mjs"),
     pluginSource("VizhiApplication.cs"),
+    pluginSource("VizhiPlugin.csproj"),
   ]);
   const contextCommands = gridCommands.slice(
     gridCommands.indexOf("public sealed class ContextCommand"),
@@ -68,11 +69,24 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
     /page\("E5B064CC1B484AE3BC0225475EAB1B02", "Commands", \[[\s\S]*?showActionsRingAction,/,
   );
   assert.match(profileGenerator, /\$@Generic___Loupedeck\.GenericPlugin\.ShowRadialMenuDynamicAction/);
+  assert.match(profileGenerator, /const staticActionIcons = \[/);
+  assert.match(profileGenerator, /backgroundColor: 0xFF000000,/);
+  assert.match(profileGenerator, /area: \{ x: 17, y: 0, width: 65, height: 65 \}/);
+  for (const actionId of ["CompactSessionCommand", "InterruptSessionCommand", "ModelSessionCommand", "NewSessionCommand", "FavoritePromptCommand", "AgentSessionCommand", "ForkSessionCommand", "ExitSessionCommand", "NewTerminalTabCommand", "NewTerminalWindowCommand"]) {
+    assert.match(profileGenerator, new RegExp(`action\\("${actionId}"\\)`));
+  }
+  for (const templateId of ["explain", "fix_bug", "refactor", "review", "security", "write_tests", "plan", "handoff", "safe_revert", "commit", "create_pr", "diff", "log", "push", "status"]) {
+    assert.match(profileGenerator, new RegExp(`action\\("TemplateCommand", "${templateId}"\\)`));
+  }
   assert.match(profileGenerator, /const profileApplicationName = "@_vizhi";/);
   assert.match(profileGenerator, /applicationName: profileApplicationName,/);
   assert.match(profileGenerator, /name: profileApplicationName,/);
-  assert.match(profileGenerator, /processOrBundleName: null,/);
+  assert.match(profileGenerator, /const terminalBundleName = "com\.apple\.Terminal";/);
+  assert.match(profileGenerator, /processOrBundleName: terminalBundleName,/);
   assert.match(applicationLink, /GetBundleName\(\) => "com\.apple\.Terminal";/);
+  assert.match(pluginProject, /RemoveDir Directories="\$\(OutputPath\)\.\.\\profiles"/);
+  assert.match(pluginProject, /PackageFiles Include="package\\\*\*\\\*" Exclude="package\\profiles\\\*\.lp5"/);
+  assert.match(pluginProject, /PackageFiles Include="package\\profiles\\DefaultProfile70\.lp5"/);
 
   const keypadTemplates = [...templateCatalog.matchAll(/new TemplateDefinition\("([a-z_]+)", "([^"]+)", "([^"]+)"/g)]
     .map((match) => ({ id: match[1], label: match[2], group: match[3] }));

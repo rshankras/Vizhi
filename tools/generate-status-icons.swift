@@ -4,7 +4,7 @@ import Foundation
 let outputDirectory = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? "VizhiPlugin/src/Resources/icons", isDirectory: true)
 let iconSize = 192
 let bounds = NSRect(x: 0, y: 0, width: iconSize, height: iconSize)
-let background = NSColor(calibratedRed: 0.05, green: 0.07, blue: 0.09, alpha: 1)
+let background = NSColor.black
 let green = NSColor(calibratedRed: 0.13, green: 0.77, blue: 0.37, alpha: 1)
 let teal = NSColor(calibratedRed: 0.18, green: 0.80, blue: 0.76, alpha: 1)
 let blue = NSColor(calibratedRed: 0.38, green: 0.65, blue: 0.98, alpha: 1)
@@ -30,7 +30,7 @@ func writeIcon(named name: String, draw: () -> Void) throws {
     let context = NSGraphicsContext(bitmapImageRep: representation)!
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = context
-    NSColor.clear.setFill()
+    background.setFill()
     bounds.fill()
     draw()
     context.flushGraphics()

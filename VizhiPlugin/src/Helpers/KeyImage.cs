@@ -5,7 +5,7 @@ namespace Loupedeck.VizhiPlugin
     internal static class KeyImage
     {
         internal static readonly BitmapColor Purple = new BitmapColor(0xA7, 0x8B, 0xFA);
-        private static readonly BitmapColor Background = new BitmapColor(0x0D, 0x11, 0x17);
+        private static readonly BitmapColor Background = new BitmapColor(0x00, 0x00, 0x00);
         private static readonly BitmapColor FocusBorder = new BitmapColor(0x60, 0xA5, 0xFA);
         private static readonly BitmapColor Surface = new BitmapColor(0x1F, 0x29, 0x37);
         private static readonly BitmapColor MutedText = new BitmapColor(0x9C, 0xA3, 0xAF);
