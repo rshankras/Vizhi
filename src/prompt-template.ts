@@ -1,7 +1,7 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { writePrivateJsonAtomically } from "./private-files.js";
 
 export interface PromptTemplate {
   schema: 1;
@@ -284,8 +284,5 @@ function legacyPaths(path: string): string[] {
 }
 
 async function writeConfig(config: PromptTemplateConfig, path: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  const temporaryPath = `${path}.${randomUUID()}.tmp`;
-  await writeFile(temporaryPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
-  await rename(temporaryPath, path);
+  await writePrivateJsonAtomically(path, config);
 }

@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
-import { appendFile, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
+import { appendFile, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
-import { ensurePrivateDirectory, ensurePrivateFile, PRIVATE_FILE_MODE } from "./private-files.js";
+import { ensurePrivateDirectory, ensurePrivateFile, PRIVATE_FILE_MODE, writePrivateJsonAtomically } from "./private-files.js";
 import { classifyRisk } from "./risk.js";
 import { GRID_SLOT_COUNT, type Action, type GridSnapshot, type Registry, type Session } from "./types.js";
 
@@ -127,12 +127,6 @@ async function readJson<T>(filePath: string): Promise<T | null> {
   }
 }
 
-async function writeJsonAtomically(filePath: string, value: unknown): Promise<void> {
-  const temporaryPath = `${filePath}.${randomUUID()}.tmp`;
-  await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", mode: PRIVATE_FILE_MODE });
-  await rename(temporaryPath, filePath);
-}
-
 function rawHookLoggingEnabled(): boolean {
   return process.env.VIZHI_RAW_HOOK_LOG === "1";
 }
@@ -183,7 +177,7 @@ export class StateStore {
     if (session.tty && !isProvisionalSession(session)) {
       await this.removeProvisionalSessionsForTty(session.tty);
     }
-    await writeJsonAtomically(join(this.sessionsPath, sessionFilename(session.session_id)), session);
+    await writePrivateJsonAtomically(join(this.sessionsPath, sessionFilename(session.session_id)), session);
     await this.assignSlot(session);
   }
 
@@ -270,7 +264,7 @@ export class StateStore {
       image_path: imagePath,
       created_at: new Date().toISOString(),
     };
-    await writeJsonAtomically(join(this.draftsPath, screenshotDraftFilename(sessionId)), draft);
+    await writePrivateJsonAtomically(join(this.draftsPath, screenshotDraftFilename(sessionId)), draft);
   }
 
   async getScreenshotDraft(sessionId: string): Promise<ScreenshotDraft | null> {
@@ -374,7 +368,7 @@ export class StateStore {
       ...details,
       created_at: new Date().toISOString(),
     };
-    await writeJsonAtomically(join(this.actionsPath, `${action.id}.json`), action);
+    await writePrivateJsonAtomically(join(this.actionsPath, `${action.id}.json`), action);
     if (type === "focus") {
       await this.setFocusedSlot(slot);
     }
@@ -392,7 +386,7 @@ export class StateStore {
       ...(returnToBrowser ? { return_to_browser: true } : {}),
       created_at: new Date().toISOString(),
     };
-    await writeJsonAtomically(join(this.actionsPath, `${action.id}.json`), action);
+    await writePrivateJsonAtomically(join(this.actionsPath, `${action.id}.json`), action);
     return action;
   }
 
@@ -411,7 +405,7 @@ export class StateStore {
       ...(returnToBrowser ? { return_to_browser: true } : {}),
       created_at: new Date().toISOString(),
     };
-    await writeJsonAtomically(join(this.actionsPath, `${action.id}.json`), action);
+    await writePrivateJsonAtomically(join(this.actionsPath, `${action.id}.json`), action);
     return action;
   }
 
@@ -507,7 +501,7 @@ export class StateStore {
   }
 
   private async writeRegistry(registry: Registry): Promise<void> {
-    await writeJsonAtomically(this.registryPath, registry);
+    await writePrivateJsonAtomically(this.registryPath, registry);
   }
 
   private async pruneFilesOlderThan(path: string, retentionMs: number, now: number): Promise<void> {

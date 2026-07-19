@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -22,6 +22,23 @@ test("stores and reloads a prompt template", async (context) => {
     label: "Review",
     prompt: "Review this change for regressions.",
   });
+});
+
+test("writes prompt template config atomically with private permissions", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vizhi-prompt-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const directory = join(root, "private");
+  const path = join(directory, "prompt-templates.json");
+
+  await writePromptTemplate("Review", "Review this change for regressions.", path);
+  await writePromptTemplate("Review", "Review the latest change for regressions.", path);
+
+  assert.equal((await readPromptTemplate(path)).prompt, "Review the latest change for regressions.");
+  assert.deepEqual((await readdir(directory)).filter((entry) => entry.endsWith(".tmp")), []);
+  if (process.platform !== "win32") {
+    assert.equal((await stat(directory)).mode & 0o777, 0o700);
+    assert.equal((await stat(path)).mode & 0o777, 0o600);
+  }
 });
 
 test("stores independent overrides for prompt and Git templates", async (context) => {
