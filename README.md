@@ -20,10 +20,10 @@ For normal keypad use, install the plugin once. You do **not** need `npm`, `npm 
 
 ### 1. Install Vizhi
 
-Install Vizhi from the Logi Marketplace when it is published. The latest release is [Vizhi 1.1.0](release/v1.1.0/README.md). After cloning this repository, open its `.lplug4` package with Logi Options+ or run:
+Install Vizhi from the Logi Marketplace when it is published. The latest release is [Vizhi 1.1.1](release/v1.1.1/README.md). After cloning this repository, open its `.lplug4` package with Logi Options+ or run:
 
 ```sh
-logiplugintool install release/v1.1.0/Vizhi_1.1.0.lplug4
+logiplugintool install release/v1.1.1/Vizhi_1.1.1.lplug4
 ```
 
 The package includes the default six-session profile with Yes, No, Voice, Navigate, Prompts, Commands, and Git pages. Its nine Commands keys are Compact, Esc, Model, New, Favorite, Agent, Fork, Exit, and Show Actions Ring. No individual actions need to be dragged onto keys.
@@ -137,6 +137,7 @@ Vizhi is informed by [Claude Console](https://github.com/rshankras/claude-consol
 - **A new Codex session does not appear:** confirm the Vizhi profile is active under Terminal, restart Codex after the trust prompt, and start Codex in Terminal.app.
 - **A key press does nothing:** check the [Accessibility and Automation permissions](docs/permissions.md), then quit and reopen Logi Options+.
 - **Vizhi does not appear in Logi Options+:** reinstall the `.lplug4` package, then quit and reopen Logi Options+.
+- **Session focus, approval warnings, or the Listening animation stay static:** an older exported Vizhi profile may have a custom image assigned to a live key. Export your layout first, then restore Vizhi's packaged default profile or remove the custom images from the six Session keys, Yes, No, and Voice. Use custom icons only for fixed command keys.
 
 ## Development
 

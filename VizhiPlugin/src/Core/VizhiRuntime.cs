@@ -191,6 +191,23 @@ namespace Loupedeck.VizhiPlugin
             }
         }
 
+        public String GetFocusedSessionId()
+        {
+            try
+            {
+                var registryPath = Path.Combine(this._rootPath, "registry.json");
+                if (!File.Exists(registryPath)) return null;
+                using var document = JsonDocument.Parse(File.ReadAllText(registryPath));
+                var registry = document.RootElement;
+                return GetInt(registry, "schema") == 1 ? GetString(registry, "focused_session") : null;
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Warning(ex, "Unable to read Vizhi focused session");
+                return null;
+            }
+        }
+
         private static String GetString(JsonElement element, String name)
             => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
@@ -440,6 +457,20 @@ namespace Loupedeck.VizhiPlugin
             return actionType == "approve" ? "Yes" : "No";
         }
 
+        public static Boolean IsFocusedApprovalWaiting(out Boolean isHighRisk)
+        {
+            lock (Sync)
+            {
+                isHighRisk = false;
+                var slot = ResolveFocusedSlot();
+                if (slot <= 0) return false;
+                var state = GetSlot(slot);
+                if (!state.IsOccupied || !String.Equals(state.State, "waiting", StringComparison.OrdinalIgnoreCase)) return false;
+                isHighRisk = IsHighRisk(state);
+                return true;
+            }
+        }
+
         public static String RenderFocusedUsage()
         {
             var slot = ResolveFocusedSlot();
@@ -499,6 +530,20 @@ namespace Loupedeck.VizhiPlugin
         {
             if (String.IsNullOrEmpty(_focusedSessionId))
             {
+                var persistedSessionId = StateReader.GetFocusedSessionId();
+                if (!String.IsNullOrEmpty(persistedSessionId))
+                {
+                    for (var slot = 1; slot <= SlotCount; slot++)
+                    {
+                        if (Slots.TryGetValue(slot, out var state)
+                            && String.Equals(state.SessionId, persistedSessionId, StringComparison.Ordinal))
+                        {
+                            _focusedSlot = slot;
+                            _focusedSessionId = state.SessionId;
+                            return true;
+                        }
+                    }
+                }
                 if (_focusedSlot == 0) return false;
                 _focusedSlot = 0;
                 return true;

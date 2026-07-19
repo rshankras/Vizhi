@@ -95,7 +95,10 @@ namespace Loupedeck.VizhiPlugin
             => VizhiRuntime.RenderFocusedAction(this._actionType);
 
         protected override BitmapImage GetCommandImage(String actionParameter, PluginImageSize imageSize)
-            => KeyImage.Render(imageSize, this._label, this._actionType == "approve" ? "approve" : "deny");
+        {
+            var isWaiting = VizhiRuntime.IsFocusedApprovalWaiting(out var isHighRisk);
+            return KeyImage.RenderApprovalAction(imageSize, this._label, this._actionType == "approve" ? "approve" : "deny", isWaiting, isHighRisk);
+        }
 
         public void RefreshFace() => this.ActionImageChanged();
 

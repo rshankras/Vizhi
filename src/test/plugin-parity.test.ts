@@ -72,6 +72,12 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   assert.match(profileGenerator, /const staticActionIcons = \[/);
   assert.match(profileGenerator, /backgroundColor: 0xFF000000,/);
   assert.match(profileGenerator, /area: \{ x: 17, y: 0, width: 65, height: 65 \}/);
+  const staticActionIconDefinitions = profileGenerator.match(/const staticActionIcons = \[([\s\S]*?)\n\];/)?.[1] ?? "";
+  assert.doesNotMatch(staticActionIconDefinitions, /GridCommand|ApproveFocusedCommand|DenyFocusedCommand|VoiceCommand/);
+  assert.match(runtime, /public String GetFocusedSessionId\(\)/);
+  assert.match(runtime, /var persistedSessionId = StateReader\.GetFocusedSessionId\(\)/);
+  assert.match(runtime, /public static Boolean IsFocusedApprovalWaiting\(out Boolean isHighRisk\)/);
+  assert.match(gridCommands, /KeyImage\.RenderApprovalAction\(/);
   for (const actionId of ["CompactSessionCommand", "InterruptSessionCommand", "ModelSessionCommand", "NewSessionCommand", "FavoritePromptCommand", "AgentSessionCommand", "ForkSessionCommand", "ExitSessionCommand", "NewTerminalTabCommand", "NewTerminalWindowCommand"]) {
     assert.match(profileGenerator, new RegExp(`action\\("${actionId}"\\)`));
   }
