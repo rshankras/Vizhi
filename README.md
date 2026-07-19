@@ -4,7 +4,7 @@
 
 Vizhi is live supervision for Codex CLI sessions through a **Logitech MX Creative Keypad** plugin and a **local browser dashboard**. Glance at every session, then approve, interrupt, redirect, or add context with a key press or spoken prompt.
 
-**Choose your surface:** use the Logitech MX Creative Keypad for instant tactile controls and hands-free Voice, or open the browser dashboard for a full live view. Both stay in sync.
+**Choose your surface:** use the Logitech MX Creative Keypad for instant tactile controls and hands-free local Whisper Voice, or open the browser dashboard for a full live view. Both stay in sync.
 
 **No hardware? [Try the 60-second replay](#no-hardware-try-the-replay-in-60-seconds).**
 
@@ -70,7 +70,7 @@ npm install
 npm start
 ```
 
-Open the complete URL printed by `npm start`. Keep the `token=...` portion intact: it authorizes that browser tab to access the local dashboard. See the [browser dashboard guide](docs/browser-dashboard.md) for browser-only development and detailed controls.
+Open the complete URL printed by `npm start`. Keep the `token=...` portion intact: it authorizes that browser tab to access the local dashboard. Browser Voice uses the browser's speech-recognition service and may process audio outside the Mac; use the keypad's physical Voice key for local Whisper transcription. See the [browser dashboard guide](docs/browser-dashboard.md) for browser-only development and detailed controls.
 
 ## Permissions
 
@@ -78,7 +78,7 @@ Vizhi never needs an administrator password, Full Disk Access, Input Monitoring,
 
 - **Codex hook trust** is required for live session cards.
 - **Accessibility, Terminal Automation, and System Events** let the keypad focus the correct tab and send actions such as Yes, No, Esc, Voice text, and menu navigation.
-- **Microphone** is needed for Voice.
+- **Microphone** is needed for Voice. Physical Voice transcribes locally with Whisper; Browser Voice may use an external browser speech-recognition service.
 - **Screen Recording** is needed only for Screenshot.
 
 Follow the [full permission walkthrough with screenshots](docs/permissions.md) when macOS or Codex prompts you.
@@ -87,7 +87,7 @@ Follow the [full permission walkthrough with screenshots](docs/permissions.md) w
 
 - A six-session LCD grid that shows project name, context percentage, Working/Ready state, and attention status.
 - TTY-verified Yes and No responses that are delivered to the session requesting approval.
-- Voice as a core hands-free way to send prompts and context without reaching for the keyboard.
+- Physical Voice as a core local, hands-free way to send prompts and context without reaching for the keyboard.
 - Screenshot-plus-Voice context, prompt templates, Git workflows, session navigation, and live model, mode, reasoning, and usage controls.
 - A local Session Library in the browser to resume, archive, and restore sessions without reading conversation messages.
 
@@ -123,7 +123,7 @@ Several projects are exploring ambient supervision for coding agents. Vizhi focu
 | [Codex Micro](https://openai.com/supply/co-lab/work-louder/) | ChatGPT Codex and Work Louder Input | Custom 13-switch controller with real-time RGB agent state | Vizhi targets Codex CLI hooks in Terminal.app and works either on an existing Logitech keypad or in a browser. |
 | [AgentDeck](https://github.com/puritysb/AgentDeck) | Multi-agent bridge with hook- and PTY-based state | Stream Deck, mobile, display, and terminal surfaces | Vizhi is deliberately narrower: a focused Codex CLI workflow with a six-session LCD grid, TTY-verified approvals, and a browser fallback. |
 | [agent-deck](https://github.com/asheshgoplani/agent-deck) | Multiple terminal-based coding agents | Terminal TUI | Vizhi moves the status and response loop off the terminal while preserving Terminal.app as the execution surface. |
-| **Vizhi** | Codex CLI lifecycle hooks in Terminal.app | Logitech MX Creative Keypad or local browser dashboard | Project name, state, context percentage, risk-aware approvals, offline Voice, screenshot-plus-Voice context, and a local Session Library. |
+| **Vizhi** | Codex CLI lifecycle hooks in Terminal.app | Logitech MX Creative Keypad or local browser dashboard | Project name, state, context percentage, risk-aware approvals, local physical Voice, screenshot-plus-Voice context, and a local Session Library. |
 
 The common thread is that agent supervision matters. Vizhi's contribution is a lightweight physical-or-browser control loop for the Codex CLI environment people already use.
 

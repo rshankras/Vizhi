@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { StateStore } from "./state-store.js";
 
 const executeFile = promisify(execFile);
+const MACOS_PS = "/bin/ps";
 
 export interface CodexTerminalProcess {
   pid: string;
@@ -16,7 +17,7 @@ export interface CodexProcessSource {
 
 export class MacCodexProcessSource implements CodexProcessSource {
   async list(): Promise<CodexTerminalProcess[]> {
-    const { stdout } = await executeFile("ps", ["-axo", "pid=,ppid=,tty=,command="]);
+    const { stdout } = await executeFile(MACOS_PS, ["-axo", "pid=,ppid=,tty=,command="]);
     return parseCodexTerminalProcesses(stdout);
   }
 }

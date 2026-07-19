@@ -38,7 +38,7 @@ The dashboard and keypad create the same local action records for every session-
 
 ## Prompt, Voice, and Screenshot
 
-The prompt box sends its text to the selected Codex session. Browser `Voice` uses the browser's speech-recognition support when available and sends the completed transcript immediately, matching the physical Voice key. Typed prompts work in every supported browser.
+The prompt box sends its text to the selected Codex session. `Browser Voice` uses the browser's speech-recognition support when available and sends the completed transcript immediately. It shows a per-dashboard-session confirmation because browser speech recognition may process audio outside the Mac. Use the MX Creative Keypad's physical Voice key when local Whisper transcription is required. Typed prompts work in every supported browser.
 
 `Clipboard` asks for confirmation before pasting plaintext into the selected session. `Screenshot` opens macOS's area selector, saves the capture under `/tmp/vizhi/captures/`, and stages its local image path in the selected Codex prompt without submitting it. Captures expire after 15 minutes. Tap Voice to add spoken context and submit both automatically, or add typed context and press `Enter`.
 

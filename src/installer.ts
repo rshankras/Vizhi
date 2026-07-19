@@ -1,6 +1,7 @@
-import { copyFile, lstat, mkdir, readFile, rm, rmdir, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { lstat, mkdir, readFile, rename, rm, rmdir, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const BEGIN_MARKER = "# >>> Vizhi hooks >>>";
 const END_MARKER = "# <<< Vizhi hooks <<<";
@@ -102,22 +103,82 @@ async function ensureNotSymlink(path: string): Promise<void> {
   }
 }
 
+async function ensureDirectory(path: string): Promise<void> {
+  await ensureNotSymlink(path);
+  await mkdir(path, { recursive: true });
+  const entry = await lstat(path);
+  if (!entry.isDirectory() || entry.isSymbolicLink()) {
+    throw new Error(`Vizhi refuses to use non-directory path ${path}.`);
+  }
+}
+
+async function ensureRegularFileOrAbsent(path: string): Promise<void> {
+  try {
+    const entry = await lstat(path);
+    if (entry.isSymbolicLink()) throw new Error(`Vizhi refuses to modify symlinked path ${path}.`);
+    if (!entry.isFile()) throw new Error(`Vizhi refuses to modify non-regular file ${path}.`);
+  } catch (error) {
+    if (hasErrorCode(error, "ENOENT")) return;
+    throw error;
+  }
+}
+
+async function existingFileMode(path: string, fallback: number): Promise<number> {
+  try {
+    const entry = await lstat(path);
+    if (entry.isSymbolicLink() || !entry.isFile()) {
+      throw new Error(`Vizhi refuses to modify non-regular file ${path}.`);
+    }
+    return entry.mode & 0o777;
+  } catch (error) {
+    if (hasErrorCode(error, "ENOENT")) return fallback;
+    throw error;
+  }
+}
+
+async function writeFileAtomically(path: string, content: string, fallbackMode: number): Promise<void> {
+  await ensureRegularFileOrAbsent(path);
+  const mode = await existingFileMode(path, fallbackMode);
+  const temporaryPath = `${path}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporaryPath, content, { encoding: "utf8", mode, flag: "wx" });
+    await rename(temporaryPath, path);
+  } catch (error) {
+    await unlink(temporaryPath).catch(() => undefined);
+    throw error;
+  }
+}
+
 export async function installCodexHooks(cliPath: string, options: CodexHookInstallOptions = {}): Promise<string> {
   const home = options.home ?? homedir();
-  const scriptsPath = join(home, ".vizhi", "scripts");
+  const vizhiPath = join(home, ".vizhi");
+  const scriptsPath = join(vizhiPath, "scripts");
   const hooksFile = options.hooksFile ?? join(home, ".codex", "config.toml");
-  await mkdir(scriptsPath, { recursive: true });
+  const hooksDirectory = dirname(hooksFile);
   const hookPath = join(scriptsPath, "codex-hook.sh");
-  await writeFile(hookPath, `#!/bin/sh\nexec node ${shellQuote(cliPath)} hook --event "$1"\n`, { mode: 0o755 });
-
-  const block = hookConfig(hookPath);
-  await writeFile(join(home, ".vizhi", "codex-hooks.vizhi.toml"), block);
-  await mkdir(join(home, ".codex"), { recursive: true });
-  const current = await readFile(hooksFile, "utf8").catch(() => "");
+  const manifestPath = join(vizhiPath, "codex-hooks.vizhi.toml");
   const backupPath = `${hooksFile}.vizhi.bak`;
-  const hasBackup = await readFile(backupPath, "utf8").then(() => true).catch(() => false);
-  if (!hasBackup && current) await copyFile(hooksFile, backupPath);
-  await writeFile(hooksFile, replaceMarkedBlock(current, block));
+  await ensureDirectory(vizhiPath);
+  await ensureDirectory(scriptsPath);
+  await ensureDirectory(hooksDirectory);
+  await Promise.all([
+    ensureRegularFileOrAbsent(hookPath),
+    ensureRegularFileOrAbsent(manifestPath),
+    ensureRegularFileOrAbsent(hooksFile),
+    ensureRegularFileOrAbsent(backupPath),
+  ]);
+
+  await writeFileAtomically(
+    hookPath,
+    `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(cliPath)} hook --event "$1"\n`,
+    0o700,
+  );
+  const block = hookConfig(hookPath);
+  await writeFileAtomically(manifestPath, block, 0o600);
+  const current = await readOptionalFile(hooksFile) ?? "";
+  const hasBackup = (await readOptionalFile(backupPath)) !== null;
+  if (!hasBackup && current) await writeFileAtomically(backupPath, current, 0o600);
+  await writeFileAtomically(hooksFile, replaceMarkedBlock(current, block), 0o600);
   return `Installed Vizhi hooks in ${hooksFile}. Restart Codex and approve its one-time hook trust prompt.`;
 }
 
@@ -129,7 +190,9 @@ export async function uninstallCodexHooks(options: CodexHookUninstallOptions = {
   const ipcRoot = options.ipcRoot ?? "/tmp/vizhi";
   const removed: string[] = [];
   await ensureNotSymlink(join(home, ".codex"));
+  await ensureNotSymlink(dirname(hooksFile));
   await ensureNotSymlink(hooksFile);
+  await ensureRegularFileOrAbsent(hooksFile);
   await ensureNotSymlink(vizhiPath);
   await ensureNotSymlink(ipcRoot);
   const current = await readOptionalFile(hooksFile);
@@ -137,7 +200,7 @@ export async function uninstallCodexHooks(options: CodexHookUninstallOptions = {
   if (current !== null) {
     const next = removeMarkedBlock(current);
     if (next !== current) {
-      await writeFile(hooksFile, next);
+      await writeFileAtomically(hooksFile, next, 0o600);
       removed.push("Codex hook block");
     }
   }

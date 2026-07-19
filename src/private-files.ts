@@ -16,13 +16,32 @@ function assertOwnedByCurrentUser(path: string, ownerId: number): void {
   }
 }
 
-export async function ensurePrivateDirectory(path: string): Promise<void> {
-  await mkdir(path, { recursive: true, mode: PRIVATE_DIRECTORY_MODE });
+async function ensureOwnedDirectory(path: string, message: string): Promise<void> {
   const information = await lstat(path);
   if (!information.isDirectory() || information.isSymbolicLink()) {
-    throw new Error(`Vizhi refuses to use ${path} because it is not a private directory.`);
+    throw new Error(`Vizhi refuses to use ${path} because it is not ${message}.`);
   }
   assertOwnedByCurrentUser(path, information.uid);
+  if (process.platform !== "win32" && (information.mode & 0o022) !== 0) {
+    throw new Error(`Vizhi refuses to use ${path} because it is writable by group or other users.`);
+  }
+}
+
+async function ensurePrivateFileParent(path: string): Promise<void> {
+  try {
+    await ensureOwnedDirectory(path, "a directory");
+    return;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+
+  await mkdir(path, { recursive: true, mode: PRIVATE_DIRECTORY_MODE });
+  await ensureOwnedDirectory(path, "a directory");
+}
+
+export async function ensurePrivateDirectory(path: string): Promise<void> {
+  await mkdir(path, { recursive: true, mode: PRIVATE_DIRECTORY_MODE });
+  await ensureOwnedDirectory(path, "a private directory");
   await chmod(path, PRIVATE_DIRECTORY_MODE);
 }
 
@@ -36,7 +55,7 @@ export async function ensurePrivateFile(path: string): Promise<void> {
 }
 
 export async function writePrivateJsonAtomically(path: string, value: unknown): Promise<void> {
-  await ensurePrivateDirectory(dirname(path));
+  await ensurePrivateFileParent(dirname(path));
   const temporaryPath = `${path}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {

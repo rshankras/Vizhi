@@ -23,6 +23,6 @@ Before it delivers an approval response, Vizhi verifies the selected Terminal ta
 
 Vizhi creates IPC directories and new state/action files with owner-only permissions. The browser binds only to `127.0.0.1` and generates a fresh local token every time it starts, so its API and event stream require the full local dashboard URL.
 
-Vizhi does not send session state, voice audio, screenshots, or clipboard contents to a Vizhi cloud service. Screenshot captures remain local for up to 15 minutes. Physical Voice transcribes locally through Whisper; browser Voice uses the browser's own speech-recognition support.
+Vizhi does not send session state, screenshots, or clipboard contents to a Vizhi cloud service. Screenshot captures remain local for up to 15 minutes. Physical Voice transcribes locally through Whisper. Browser Voice uses the browser's own speech-recognition support, which may process audio outside the Mac; Vizhi shows an explicit confirmation before starting it.
 
 See the [permissions guide](permissions.md) for the macOS and Codex access prompts, and the [keypad reference](keypad-reference.md) for the user-facing control flow.

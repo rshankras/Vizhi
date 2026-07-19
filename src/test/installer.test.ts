@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { lstat, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -21,6 +21,23 @@ test("appends one backup-safe Vizhi hooks block to Codex config", async (context
   assert.match(config, /\[\[hooks\.PermissionRequest\.hooks\]\]/);
   assert.match(config, /codex-hook\.sh' PermissionRequest/);
   assert.equal(backup, 'model = "test"\n');
+  const hook = await readFile(join(home, ".vizhi", "scripts", "codex-hook.sh"), "utf8");
+  assert.ok(hook.includes(process.execPath));
+  assert.doesNotMatch(hook, /\nexec node /);
+});
+
+test("refuses to install hooks through a symlinked Codex config", async (context) => {
+  const home = await mkdtemp(join(tmpdir(), "vizhi-installer-symlink-"));
+  context.after(() => rm(home, { recursive: true, force: true }));
+  const codexPath = join(home, ".codex");
+  const configPath = join(codexPath, "config.toml");
+  const targetPath = join(home, "target.toml");
+  await mkdir(codexPath, { recursive: true });
+  await writeFile(targetPath, 'model = "preserve"\n');
+  await symlink(targetPath, configPath);
+
+  await assert.rejects(installCodexHooks("/opt/vizhi/dist/cli.js", { home }), /symlinked path/);
+  assert.equal(await readFile(targetPath, "utf8"), 'model = "preserve"\n');
 });
 
 test("removes Vizhi hooks and runtime while preserving saved prompts by default", async (context) => {

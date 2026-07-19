@@ -16,6 +16,7 @@ const COMPLETED_ACTION_RETENTION_MS = 60 * 60 * 1000;
 const RAW_HOOK_LOG_MAX_BYTES = 1 * 1024 * 1024;
 const RAW_HOOK_LOG_ENTRY_MAX_BYTES = 64 * 1024;
 const executeFile = promisify(execFile);
+const MACOS_PS = "/bin/ps";
 
 interface ScreenshotDraft {
   schema: 1;
@@ -530,7 +531,7 @@ async function isTerminalTtyOpen(tty: string): Promise<boolean> {
   const terminalName = basename(tty);
   if (!terminalName.startsWith("ttys")) return true;
   try {
-    await executeFile("ps", ["-t", terminalName, "-o", "pid="]);
+    await executeFile(MACOS_PS, ["-t", terminalName, "-o", "pid="]);
     return true;
   } catch {
     return false;

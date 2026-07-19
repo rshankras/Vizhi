@@ -27,7 +27,7 @@ function pick(payload: Payload, keys: string[]): string | null {
 
 function parentTty(): string | null {
   try {
-    const tty = execFileSync("ps", ["-o", "tty=", "-p", String(process.ppid)], { encoding: "utf8" }).trim();
+    const tty = execFileSync("/bin/ps", ["-o", "tty=", "-p", String(process.ppid)], { encoding: "utf8" }).trim();
     return tty && tty !== "??" ? `/dev/${tty}` : null;
   } catch {
     return null;

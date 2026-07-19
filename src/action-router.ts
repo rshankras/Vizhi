@@ -11,6 +11,9 @@ import { GRID_SLOT_COUNT, TERMINAL_KEYS, type Action, type Session, type Termina
 
 const executeFile = promisify(execFile);
 const MAX_ACTION_AGE_MS = 30_000;
+const MACOS_OSASCRIPT = "/usr/bin/osascript";
+const MACOS_PBPASTE = "/usr/bin/pbpaste";
+const MACOS_SCREEN_CAPTURE = "/usr/sbin/screencapture";
 
 export interface ActionExecutor {
   focusTerminal(tty: string | null, capturePreviousApplication?: boolean): Promise<void>;
@@ -34,7 +37,7 @@ export class MacTerminalExecutor implements ActionExecutor {
 
   async focusTerminal(tty: string | null, capturePreviousApplication = false): Promise<void> {
     if (!tty) {
-      return;
+      throw new Error("Vizhi cannot find a terminal TTY for this session.");
     }
     this.previousApplication = capturePreviousApplication ? await this.frontmostApplication() : null;
     const script = `on run argv
@@ -54,7 +57,7 @@ end repeat
 end tell
 error "Vizhi could not find terminal tab for " & targetTty
 end run`;
-    await executeFile("osascript", ["-e", script, tty]);
+    await executeFile(MACOS_OSASCRIPT, ["-e", script, tty]);
   }
 
   async restorePreviousApplication(): Promise<void> {
@@ -65,7 +68,7 @@ end run`;
 tell application (item 1 of argv) to activate
 end run`;
     try {
-      await executeFile("osascript", ["-e", script, application]);
+      await executeFile(MACOS_OSASCRIPT, ["-e", script, application]);
     } catch {
     }
   }
@@ -79,7 +82,7 @@ end run`;
     const script = `tell application "System Events"
 keystroke "${shortcut}"
 end tell`;
-    await executeFile("osascript", ["-e", script]);
+    await executeFile(MACOS_OSASCRIPT, ["-e", script]);
   }
 
   async typeText(text: string, submit = true): Promise<void> {
@@ -92,14 +95,14 @@ end tell`;
       "end tell",
       "end run",
     ].join("\n");
-    await executeFile("osascript", ["-e", script, text]);
+    await executeFile(MACOS_OSASCRIPT, ["-e", script, text]);
   }
 
   async interrupt(): Promise<void> {
     const script = `tell application "System Events"
 key code 53
 end tell`;
-    await executeFile("osascript", ["-e", script]);
+    await executeFile(MACOS_OSASCRIPT, ["-e", script]);
   }
 
   async forkSession(session: Session, capturePreviousApplication = false): Promise<void> {
@@ -115,7 +118,7 @@ end tell`;
   }
 
   async pasteClipboard(): Promise<void> {
-    const { stdout } = await executeFile("pbpaste", [], { maxBuffer: 100 * 1024 });
+    const { stdout } = await executeFile(MACOS_PBPASTE, [], { maxBuffer: 100 * 1024 });
     if (!stdout.trim()) throw new Error("Clipboard does not contain text.");
     await this.typeText(stdout);
   }
@@ -124,7 +127,7 @@ end tell`;
     const capturesPath = join(this.ipcRoot, "captures");
     await ensurePrivateDirectory(capturesPath);
     const filePath = join(capturesPath, `capture-${Date.now()}.png`);
-    await executeFile("screencapture", ["-i", filePath]);
+    await executeFile(MACOS_SCREEN_CAPTURE, ["-i", filePath]);
     await chmod(filePath, PRIVATE_FILE_MODE);
     return filePath;
   }
@@ -141,13 +144,13 @@ end tell`;
     const script = `tell application "System Events"
 key code ${keyCodes[key]}
 end tell`;
-    await executeFile("osascript", ["-e", script]);
+    await executeFile(MACOS_OSASCRIPT, ["-e", script]);
   }
 
   private async frontmostApplication(): Promise<string | null> {
     try {
       const script = `tell application "System Events" to get name of first application process whose frontmost is true`;
-      const { stdout } = await executeFile("osascript", ["-e", script]);
+      const { stdout } = await executeFile(MACOS_OSASCRIPT, ["-e", script]);
       return stdout.trim() || null;
     } catch {
       return null;
@@ -177,7 +180,7 @@ end tell`;
       "end if",
       "end run",
     ].join("\n");
-    await executeFile("osascript", ["-e", script, shellCommand]);
+    await executeFile(MACOS_OSASCRIPT, ["-e", script, shellCommand]);
   }
 }
 
@@ -330,6 +333,7 @@ export class ActionRouter {
       const target = await this.sessionForAction(action);
       if (!target) throw new Error(`No active session is available for slot ${action.slot}`);
       const { session, slot } = target;
+      if (!session.tty) throw new Error("Vizhi cannot send an action because this session has no terminal TTY.");
       if (action.type === "fork") {
         if (!this.executor.forkSession) throw new Error("The current action executor cannot fork sessions.");
         await this.executor.forkSession(session, returnToBrowser);

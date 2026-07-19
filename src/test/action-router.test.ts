@@ -81,6 +81,28 @@ test("focuses the assigned terminal before typing a voice transcript", async (co
   assert.deepEqual(calls, ["focus:/dev/ttys001", "text:Write regression tests"]);
 });
 
+test("refuses to type into the frontmost app when a session has no terminal TTY", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vizhi-router-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const store = new StateStore(root);
+  await store.upsertSession(createSession("session-without-tty", { tty: null }));
+  await writeFile(join(store.actionsPath, "voice.json"), JSON.stringify({
+    id: "voice", type: "voice", slot: 1, text: "Do not send this elsewhere", created_at: new Date().toISOString(),
+  }));
+  const calls: string[] = [];
+  const executor: ActionExecutor = {
+    focusTerminal: async (tty) => { calls.push(`focus:${tty}`); },
+    respond: async (answer) => { calls.push(`respond:${answer}`); },
+    typeText: async (text) => { calls.push(`text:${text}`); },
+    interrupt: async () => { calls.push("interrupt"); },
+    pressKey: async (key) => { calls.push(`key:${key}`); },
+  };
+
+  await new ActionRouter(store, executor, false).processPending();
+
+  assert.deepEqual(calls, []);
+});
+
 test("delivers a queued action to its session after slots compact", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vizhi-router-"));
   context.after(() => rm(root, { recursive: true, force: true }));

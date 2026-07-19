@@ -4,13 +4,15 @@ namespace Loupedeck.VizhiPlugin
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
+    using System.Security.Cryptography;
     using System.Threading;
     using System.Threading.Tasks;
 
     internal static class VizhiVoiceRuntime
     {
         private const String WhisperModelUrl = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
-        private const Int64 MinimumModelSizeBytes = 50L * 1024L * 1024L;
+        private const String WhisperModelSha256 = "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002";
+        private const Int64 WhisperModelSizeBytes = 147_964_211;
         private const Int32 SetupTimeoutMilliseconds = 15 * 60 * 1000;
         private static readonly String RuntimePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".vizhi", "voice");
         private static readonly String HelperPath = Path.Combine(RuntimePath, "VizhiVoiceHelper.app");
@@ -135,13 +137,21 @@ namespace Loupedeck.VizhiPlugin
         {
             try
             {
-                var model = new FileInfo(ModelPath);
-                return model.Exists && model.LinkTarget == null && model.Length >= MinimumModelSizeBytes;
+                return IsVerifiedModel(ModelPath);
             }
             catch
             {
                 return false;
             }
+        }
+
+        private static Boolean IsVerifiedModel(String path)
+        {
+            var model = new FileInfo(path);
+            if (!model.Exists || model.LinkTarget != null || model.Length != WhisperModelSizeBytes) return false;
+            using var stream = File.OpenRead(path);
+            using var sha256 = SHA256.Create();
+            return String.Equals(Convert.ToHexString(sha256.ComputeHash(stream)), WhisperModelSha256, StringComparison.OrdinalIgnoreCase);
         }
 
         private static void RequestModelDownload()
@@ -214,10 +224,11 @@ end try
                     "--output", downloadPath, WhisperModelUrl,
                 }, SetupTimeoutMilliseconds);
 
-                var download = new FileInfo(downloadPath);
-                if (!download.Exists || download.LinkTarget != null || download.Length < MinimumModelSizeBytes)
+                if (!IsVerifiedModel(downloadPath))
                 {
-                    throw new InvalidDataException("The Whisper model download is incomplete.");
+                    EnsureNotSymlinkedFile(downloadPath);
+                    File.Delete(downloadPath);
+                    throw new InvalidDataException("The Whisper model download failed integrity verification.");
                 }
                 EnsureNotSymlinkedFile(ModelPath);
                 File.Move(downloadPath, ModelPath, true);

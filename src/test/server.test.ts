@@ -6,6 +6,13 @@ import test from "node:test";
 import { startServer } from "../server.js";
 import { createSession, StateStore } from "../state-store.js";
 
+test("fails cleanly when the dashboard cannot bind its port", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vizhi-server-bind-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+
+  await assert.rejects(startServer(new StateStore(root), -1), RangeError);
+});
+
 test("serves grid state and records browser actions", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vizhi-server-"));
   context.after(() => rm(root, { recursive: true, force: true }));
@@ -29,6 +36,11 @@ test("serves grid state and records browser actions", async (context) => {
   assert.match(page, /data-action="clipboard"/);
   assert.match(page, /data-action="screenshot"/);
   assert.match(page, /id="voice"/);
+  assert.match(page, /Browser Voice uses your browser/);
+  assert.match(page, /may be processed outside this Mac/);
+  const script = page.match(/<script>([\s\S]*)<\/script>/)?.[1];
+  assert.ok(script);
+  assert.doesNotThrow(() => new Function(script));
   assert.match(page, /queueAction\(\{type:'voice'/);
   assert.match(page, /data-action="new_terminal"/);
   assert.match(page, /data-action="exit"/);
