@@ -32,9 +32,17 @@ test("serves grid state and records browser actions", async (context) => {
   assert.match(page, /data-action="mode"/);
   assert.match(page, /data-action="agent"/);
   assert.match(page, /data-action="fork"/);
-  assert.match(page, /data-action="favorite"/);
+  assert.match(page, /id:'favorite',action:'favorite'/);
   assert.match(page, /data-action="clipboard"/);
   assert.match(page, /data-action="screenshot"/);
+  assert.match(page, /Quick Actions/);
+  assert.match(page, /Customize Quick Actions/);
+  assert.match(page, /Pin up to four frequently used commands/);
+  assert.match(page, /QUICK_ACTION_LIMIT=4/);
+  assert.match(page, /vizhi.quick-actions.v1/);
+  assert.match(page, /draggable="true"/);
+  assert.match(page, /data-quick-action-control="move_left"/);
+  assert.ok(page.includes("const QUICK_GIT_TEMPLATE_IDS=['status','diff','log'];"));
   assert.match(page, /id="voice"/);
   assert.match(page, /Browser Voice uses your browser/);
   assert.match(page, /may be processed outside this Mac/);

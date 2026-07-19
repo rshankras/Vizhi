@@ -30,6 +30,16 @@ Select a session card, then use its controls for `Yes`, `No`, `Esc`, `Compact`, 
 
 `Fork` starts `codex fork` in a new Terminal tab using the selected session's project directory. `New Tab` and `New Window` open plain Terminal shells in that directory. The live usage panel shows context, cost, model, and reasoning. Browser-issued commands return you to the dashboard; use `Open Terminal` only when you want to stay in the selected Codex tab.
 
+## Quick Actions
+
+The browser puts a **Quick Actions** row immediately below the fixed `Yes`, `No`, and `Esc` controls. Its defaults are Favorite, Compact, Write Tests, and Screenshot.
+
+Choose **Customize** to pin up to four actions, remove them, or change their order. Dragging is available in the customization dialog, and left/right buttons provide the same ordering control for keyboard and touchpad use. **Reset to defaults** restores the initial row.
+
+Only session-safe shortcuts are available: Favorite, Compact, Screenshot, Clipboard, Model, Mode, Agent, prompt templates, and read-only Git templates (Status, Diff, and Git Log). Approvals, `Esc`, Voice, session cards, terminal creation, navigation, and `Exit` stay fixed for reliable muscle memory.
+
+Quick Action choices are stored in that browser's local storage. They do not leave the Mac, change the shared session state, or rearrange the MX Creative Keypad profile.
+
 ## Keypad parity
 
 The dashboard and keypad create the same local action records for every session-affecting control: approvals, Voice text, interrupt, Codex controls, terminal navigation, context, prompt templates, and Git workflows. They therefore operate on the same focused session and update from the same live state.

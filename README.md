@@ -70,7 +70,7 @@ npm install
 npm start
 ```
 
-Open the complete URL printed by `npm start`. Keep the `token=...` portion intact: it authorizes that browser tab to access the local dashboard. Browser Voice uses the browser's speech-recognition service and may process audio outside the Mac; use the keypad's physical Voice key for local Whisper transcription. See the [browser dashboard guide](docs/browser-dashboard.md) for browser-only development and detailed controls.
+Open the complete URL printed by `npm start`. Keep the `token=...` portion intact: it authorizes that browser tab to access the local dashboard. Browser Voice uses the browser's speech-recognition service and may process audio outside the Mac; use the keypad's physical Voice key for local Whisper transcription. The dashboard's **Quick Actions** row can hold up to four browser-only shortcuts; its order is saved in the browser and never changes your MX Creative Keypad profile. See the [browser dashboard guide](docs/browser-dashboard.md) for browser-only development and detailed controls.
 
 ## Permissions
 

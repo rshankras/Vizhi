@@ -89,6 +89,7 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   const page = await fetch(`${base}/?token=${server.token}`).then((response) => response.text());
   for (const action of expectedActions) {
     if (action === "voice") assert.match(page, /queueAction\(\{type:'voice'/);
+    else if (action === "favorite") assert.match(page, /id:'favorite',action:'favorite'/);
     else assert.match(page, new RegExp(`data-action="${action}"`));
   }
   for (const key of TERMINAL_KEYS) assert.match(page, new RegExp(`data-key="${key}"`));
