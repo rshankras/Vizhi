@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { startServer } from "../server.js";
 import { createSession, StateStore } from "../state-store.js";
+import { CONVERSATION_POLICY, SESSION_NUMBER_WORDS, VOICE_INTENTS } from "../voice-intents.js";
 
 test("fails cleanly when the dashboard cannot bind its port", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vizhi-server-bind-"));
@@ -46,6 +47,12 @@ test("serves grid state and records browser actions", async (context) => {
   assert.match(page, /id="voice"/);
   assert.match(page, /Browser Voice uses your browser/);
   assert.match(page, /may be processed outside this Mac/);
+  assert.match(page, /id="converse"/);
+  assert.match(page, /id="mic-state"/);
+  assert.ok(page.includes(`const VOICE_INTENTS=${JSON.stringify(VOICE_INTENTS)};`));
+  assert.ok(page.includes(`const SESSION_NUMBER_WORDS=${JSON.stringify(SESSION_NUMBER_WORDS)};`));
+  assert.ok(page.includes(`const CONVERSATION_POLICY=${JSON.stringify(CONVERSATION_POLICY)};`));
+  assert.match(page, /Conversation mode needs browser speech recognition/);
   const script = page.match(/<script>([\s\S]*)<\/script>/)?.[1];
   assert.ok(script);
   assert.doesNotThrow(() => new Function(script));

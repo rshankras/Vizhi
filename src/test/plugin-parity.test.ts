@@ -32,11 +32,12 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   });
   context.after(() => rm(root, { recursive: true, force: true }));
 
-  const [gridCommands, runtime, templateCatalog, voiceIntentCatalog, profileGenerator, applicationLink, pluginProject] = await Promise.all([
+  const [gridCommands, runtime, templateCatalog, voiceIntentCatalog, conversationRuntime, profileGenerator, applicationLink, pluginProject] = await Promise.all([
     pluginSource("Actions/GridSlotCommands.cs"),
     pluginSource("Core/VizhiRuntime.cs"),
     pluginSource("Helpers/TemplateCatalog.cs"),
     pluginSource("Helpers/VoiceIntentCatalog.cs"),
+    pluginSource("Core/VizhiConversationRuntime.cs"),
     repositorySource("tools/generate-default-profile.mjs"),
     pluginSource("VizhiApplication.cs"),
     pluginSource("VizhiPlugin.csproj"),
@@ -108,6 +109,8 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   assert.match(voiceIntentCatalog, new RegExp(`SilenceSeconds = ${CONVERSATION_POLICY.silenceSeconds};`));
   assert.match(voiceIntentCatalog, new RegExp(`TurnMaxSeconds = ${CONVERSATION_POLICY.turnMaxSeconds};`));
   assert.match(voiceIntentCatalog, new RegExp(`IdleTimeoutMinutes = ${CONVERSATION_POLICY.idleTimeoutMinutes};`));
+  assert.match(conversationRuntime, /VizhiRuntime\.Write/);
+  assert.doesNotMatch(conversationRuntime, /osascript|keystroke/i);
 
   const keypadTemplates = [...templateCatalog.matchAll(/new TemplateDefinition\("([a-z_]+)", "([^"]+)", "([^"]+)"/g)]
     .map((match) => ({ id: match[1], label: match[2], group: match[3] }));
@@ -131,6 +134,9 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   assert.match(page, /Selected session · Live usage/);
   assert.match(page, /data-action="focus"/);
   assert.match(page, /id="voice"/);
+  assert.match(page, /id="converse"/);
+  assert.ok(page.includes(JSON.stringify(VOICE_INTENTS)));
+  assert.ok(page.includes(CONVERSATION_POLICY.confirmPhrase));
 
   const templates = await fetch(`${base}/api/templates`, { headers: { "x-vizhi-token": server.token } })
     .then((response) => response.json()) as Array<{ id: string; label: string; group: string }>;
