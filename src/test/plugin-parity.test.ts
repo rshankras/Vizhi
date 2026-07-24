@@ -8,6 +8,7 @@ import { DEFAULT_PROMPT_TEMPLATES, PROMPT_TEMPLATE_IDS } from "../prompt-templat
 import { startServer } from "../server.js";
 import { StateStore } from "../state-store.js";
 import { TERMINAL_KEYS } from "../types.js";
+import { CONVERSATION_POLICY, SESSION_NUMBER_WORDS, VOICE_INTENT_IDS, VOICE_INTENTS } from "../voice-intents.js";
 
 function captures(source: string, expression: RegExp): string[] {
   return [...source.matchAll(expression)].map((match) => match[1]);
@@ -31,10 +32,11 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   });
   context.after(() => rm(root, { recursive: true, force: true }));
 
-  const [gridCommands, runtime, templateCatalog, profileGenerator, applicationLink, pluginProject] = await Promise.all([
+  const [gridCommands, runtime, templateCatalog, voiceIntentCatalog, profileGenerator, applicationLink, pluginProject] = await Promise.all([
     pluginSource("Actions/GridSlotCommands.cs"),
     pluginSource("Core/VizhiRuntime.cs"),
     pluginSource("Helpers/TemplateCatalog.cs"),
+    pluginSource("Helpers/VoiceIntentCatalog.cs"),
     repositorySource("tools/generate-default-profile.mjs"),
     pluginSource("VizhiApplication.cs"),
     pluginSource("VizhiPlugin.csproj"),
@@ -93,6 +95,19 @@ test("keeps browser controls aligned with keypad actions, navigation, and templa
   assert.match(pluginProject, /RemoveDir Directories="\$\(OutputPath\)\.\.\\profiles"/);
   assert.match(pluginProject, /PackageFiles Include="package\\\*\*\\\*" Exclude="package\\profiles\\\*\.lp5"/);
   assert.match(pluginProject, /PackageFiles Include="package\\profiles\\DefaultProfile70\.lp5"/);
+
+  const keypadIntents = [...voiceIntentCatalog.matchAll(/new VoiceIntentDefinition\("([a-z_]+)"((?:, "[^"]+")*)\)/g)]
+    .map((match) => ({ id: match[1], phrases: [...match[2].matchAll(/"([^"]+)"/g)].map((phrase) => phrase[1]) }));
+  assert.deepEqual(keypadIntents, VOICE_INTENT_IDS.map((id) => ({ id, phrases: [...VOICE_INTENTS[id]] })));
+  const keypadNumberWords = Object.fromEntries(
+    [...voiceIntentCatalog.matchAll(/\{ "([a-z]+)", ([1-6]) \},/g)].map((match) => [match[1], Number(match[2])]),
+  );
+  assert.deepEqual(keypadNumberWords, SESSION_NUMBER_WORDS);
+  assert.match(voiceIntentCatalog, new RegExp(`ConfirmPhrase = "${CONVERSATION_POLICY.confirmPhrase}";`));
+  assert.match(voiceIntentCatalog, new RegExp(`MaxEmptyTurns = ${CONVERSATION_POLICY.maxEmptyTurns};`));
+  assert.match(voiceIntentCatalog, new RegExp(`SilenceSeconds = ${CONVERSATION_POLICY.silenceSeconds};`));
+  assert.match(voiceIntentCatalog, new RegExp(`TurnMaxSeconds = ${CONVERSATION_POLICY.turnMaxSeconds};`));
+  assert.match(voiceIntentCatalog, new RegExp(`IdleTimeoutMinutes = ${CONVERSATION_POLICY.idleTimeoutMinutes};`));
 
   const keypadTemplates = [...templateCatalog.matchAll(/new TemplateDefinition\("([a-z_]+)", "([^"]+)", "([^"]+)"/g)]
     .map((match) => ({ id: match[1], label: match[2], group: match[3] }));
