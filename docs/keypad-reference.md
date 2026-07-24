@@ -38,6 +38,21 @@ Physical Voice transcribes locally through `whisper-cli`. Install it once, for e
 
 Browser Voice uses the browser's microphone and speech-recognition support instead; see the [browser dashboard guide](browser-dashboard.md). For the related prompts, see the [permissions guide](permissions.md).
 
+## Voice conversation
+
+Hold the `Voice` key for about a second (or double-tap its surface) to start a spoken conversation; hold it again to end one. A short tap keeps its normal one-shot recording behavior outside a conversation. Everything stays local: listening uses the same Whisper helper, and speech uses macOS's built-in voice.
+
+While a conversation is on, Vizhi speaks for the sessions on your grid:
+
+- When a session asks for approval, Vizhi reads the question aloud, then listens. Say `yes` to approve or `no` to deny. For a high-risk command such as `git push`, Vizhi reads the exact command back and only accepts `confirm approve`; a bare `yes` is refused aloud.
+- When a Working session becomes Ready, Vizhi announces that it finished; ended sessions are announced too. When the last session ends, the conversation ends itself.
+- Say `status` for a spoken digest of every session, `switch to session two` to move focus, `take a screenshot` to stage a capture, or anything else to send it to the focused session as a prompt — including a staged Screenshot draft, exactly like one-shot Voice.
+- Say `mute`, or tap the key, to mute the microphone; announcements continue, and listening stays off until you tap again. Tapping while Vizhi speaks also stops the speech immediately. Say `end conversation` or `goodbye` to finish.
+
+The key face follows the conversation: a teal Converse face while monitoring, the green Listening wave while the microphone is open, a Thinking spinner during transcription, a green Speaking face during announcements, and a red-slashed Muted face when the microphone is off. Listening stops on its own after about 1.5 seconds of silence, recording is capped at 60 seconds per turn, and a conversation left idle for 10 minutes ends itself with a notification. The microphone is only open while the Listening face shows.
+
+Spoken approvals travel the same verified path as the `Yes` and `No` keys — Vizhi never answers a prompt without confirming the Terminal tab by TTY first, and it only speaks text that Codex hooks already provide (questions, pending commands, states, and project names), never conversation content.
+
 ## Custom prompt templates
 
 Every prompt and Git workflow works immediately and can be customized independently. For example, replace the `Fix Bug` workflow:

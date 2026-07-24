@@ -88,6 +88,7 @@ Follow the [full permission walkthrough with screenshots](docs/permissions.md) w
 - A six-session LCD grid that shows project name, context percentage, Working/Ready state, and attention status.
 - TTY-verified Yes and No responses that are delivered to the session requesting approval.
 - Physical Voice as a core local, hands-free way to send prompts and context without reaching for the keyboard.
+- A local voice conversation mode: hold Voice and Vizhi speaks approval questions aloud with a risk readback, takes spoken yes/no (high-risk commands require "confirm approve"), announces finished sessions, and answers a spoken status digest — Whisper in, macOS voice out, nothing leaves the Mac.
 - Screenshot-plus-Voice context, prompt templates, Git workflows, session navigation, and live model, mode, reasoning, and usage controls.
 - A local Session Library in the browser to resume, archive, and restore sessions without reading conversation messages.
 
