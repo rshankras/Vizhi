@@ -210,33 +210,34 @@ namespace Loupedeck.VizhiPlugin
             SetFace(ConversationFace.Off);
         }
 
+        // Tap means "I want to talk" (or "stop talking/listening"), not mute: the microphone
+        // can always be opened by hand, while spoken "mute" keeps it closed after announcements.
         private static void HandleTap()
         {
             _lastInteractionAt = DateTime.UtcNow;
-            if (_muted)
-            {
-                _muted = false;
-                var slot = VizhiRuntime.ResolveFocusedSlot();
-                var state = slot > 0 ? VizhiRuntime.GetSlot(slot) : null;
-                if (state?.IsOccupied == true && IsWaiting(state)) AnnounceQuestion(state, requeue: true);
-                else SetFace(ConversationFace.Monitoring);
-                return;
-            }
-
-            _muted = true;
             switch (Face)
             {
                 case ConversationFace.Speaking:
                     _utteranceId++;
+                    _listenAfterSpeech = false;
                     VizhiSpeechSynthesizer.Cancel();
-                    break;
+                    StartListenTurn();
+                    return;
                 case ConversationFace.Listening:
                 case ConversationFace.Transcribing:
                     _turnId++;
                     VizhiVoiceRuntime.CancelTurn();
-                    break;
+                    SetFace(ConversationFace.Monitoring);
+                    DrainAnnouncements();
+                    return;
+                case ConversationFace.Muted:
+                    _muted = false;
+                    StartListenTurn();
+                    return;
+                default:
+                    StartListenTurn();
+                    return;
             }
-            SetFace(ConversationFace.Muted);
         }
 
         private static void HandleStateChanged(GridSlotState[] slots)
@@ -536,12 +537,6 @@ namespace Loupedeck.VizhiPlugin
             if (Face != ConversationFace.Monitoring && Face != ConversationFace.Muted && Face != ConversationFace.Off) return;
             var announcement = PendingAnnouncements.Dequeue();
             Speak(announcement.Text, announcement.ListenAfter);
-        }
-
-        private static void AnnounceQuestion(GridSlotState state, Boolean requeue)
-        {
-            if (requeue) AnnouncedQuestions[state.SessionId] = QuestionKey(state);
-            Speak(BuildQuestionAnnouncement(state), listenAfter: true);
         }
 
         private static void RecordCurrentQuestions(GridSlotState[] slots)
