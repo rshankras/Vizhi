@@ -257,6 +257,7 @@ namespace Loupedeck.VizhiPlugin
         private static Int32 _focusedSlot;
         private static String _focusedSessionId;
         private static Int64 _lastAnimationFrame = -1;
+        private static Action<GridSlotState[], Int32> _slotsObserver;
 
         public static void Start()
         {
@@ -282,8 +283,19 @@ namespace Loupedeck.VizhiPlugin
                 _focusedSlot = 0;
                 _focusedSessionId = null;
                 _lastAnimationFrame = -1;
+                _slotsObserver = null;
             }
         }
+
+        public static void SetSlotsObserver(Action<GridSlotState[], Int32> observer)
+        {
+            lock (Sync)
+            {
+                _slotsObserver = observer;
+            }
+        }
+
+        public static Boolean IsHighRiskSlot(Int32 slot) => IsHighRisk(GetSlot(slot));
 
         public static void Register(IRefreshableCommand command)
         {
@@ -488,6 +500,9 @@ namespace Loupedeck.VizhiPlugin
 
         private static void Refresh(Object state)
         {
+            Action<GridSlotState[], Int32> observer;
+            var snapshot = new GridSlotState[SlotCount];
+            Int32 focusedSlot;
             lock (Sync)
             {
                 var changed = false;
@@ -496,6 +511,7 @@ namespace Loupedeck.VizhiPlugin
                     var next = StateReader.ReadSlot(slot);
                     if (!Slots.TryGetValue(slot, out var current) || !HasSameVisualState(current, next)) changed = true;
                     Slots[slot] = next;
+                    snapshot[slot - 1] = next;
                 }
                 if (RefreshPendingScreenshotDrafts()) changed = true;
                 if (ReconcileFocusedSlot()) changed = true;
@@ -508,7 +524,10 @@ namespace Loupedeck.VizhiPlugin
                     if (changed) command.RefreshFace();
                     else if (advanceAnimation && command.RequiresAnimation) command.RefreshAnimatedFaces();
                 }
+                observer = _slotsObserver;
+                focusedSlot = _focusedSlot;
             }
+            observer?.Invoke(snapshot, focusedSlot);
         }
 
         private static Boolean HasSameVisualState(GridSlotState first, GridSlotState second)
