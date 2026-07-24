@@ -20,6 +20,10 @@ let transcriptPath = argument("--transcript") ?? "\(temporaryPath)/transcript.tx
 let stopPath = argument("--stopflag") ?? "\(temporaryPath)/recording.stop"
 let maximumSeconds = Double(argument("--maxsec") ?? "60") ?? 60
 let requestMicrophonePermissionOnly = CommandLine.arguments.contains("--request-microphone-permission")
+let vadEnabled = CommandLine.arguments.contains("--vad")
+let silenceSeconds = Double(argument("--silence") ?? "1.5") ?? 1.5
+let speechThresholdDb: Float = -35
+let awaitSpeechSeconds = 8.0
 let fileManager = FileManager.default
 
 func whisperBinary() -> String? {
@@ -64,7 +68,13 @@ let settings: [String: Any] = [
     AVLinearPCMIsFloatKey: false,
     AVLinearPCMIsBigEndianKey: false,
 ]
-guard let recorder = try? AVAudioRecorder(url: recordingUrl, settings: settings), recorder.record() else {
+guard let recorder = try? AVAudioRecorder(url: recordingUrl, settings: settings) else {
+    removeRecording()
+    log("failed to begin recording")
+    exit(3)
+}
+recorder.isMeteringEnabled = vadEnabled
+guard recorder.record() else {
     removeRecording()
     log("failed to begin recording")
     exit(3)
@@ -73,8 +83,23 @@ try? fileManager.setAttributes(privateFileAttributes, ofItemAtPath: recordingPat
 
 NSSound(named: "Tink")?.play()
 let startedAt = Date()
+var speechStartedAt: Date?
+var lastLoudAt = Date()
 while !fileManager.fileExists(atPath: stopPath) && Date().timeIntervalSince(startedAt) < maximumSeconds {
     RunLoop.current.run(until: Date().addingTimeInterval(0.12))
+    guard vadEnabled else { continue }
+    recorder.updateMeters()
+    let now = Date()
+    if recorder.averagePower(forChannel: 0) >= speechThresholdDb {
+        if speechStartedAt == nil { speechStartedAt = now }
+        lastLoudAt = now
+        continue
+    }
+    if speechStartedAt == nil {
+        if now.timeIntervalSince(startedAt) >= awaitSpeechSeconds { break }
+    } else if now.timeIntervalSince(lastLoudAt) >= silenceSeconds {
+        break
+    }
 }
 recorder.stop()
 try? fileManager.removeItem(atPath: stopPath)
