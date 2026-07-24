@@ -11,26 +11,35 @@ namespace Loupedeck.VizhiPlugin
         {
             if (String.IsNullOrWhiteSpace(text)) return String.Empty;
             var hadCode = text.Contains("```", StringComparison.Ordinal);
-            var value = text;
-            value = Regex.Replace(value, "```[\\s\\S]*?(```|$)", " ");
-            value = Regex.Replace(value, "`([^`]*)`", "$1");
-            value = Regex.Replace(value, "\\[([^\\]]*)\\]\\([^)]*\\)", "$1");
-            value = Regex.Replace(value, "https?://\\S+", "a link");
-            value = Regex.Replace(value, "^[\\s#>|*+-]+", " ", RegexOptions.Multiline);
-            value = Regex.Replace(value, "[*_~#|]+", " ");
-            value = Regex.Replace(value, "\\s+", " ").Trim();
-            if (value.Length == 0) return hadCode ? "The answer is code; it's on screen." : String.Empty;
-            if (value.Length > maxChars)
+            var cleaned = text;
+            cleaned = Regex.Replace(cleaned, "```[\\s\\S]*?(```|$)", " ");
+            cleaned = Regex.Replace(cleaned, "`([^`]*)`", "$1");
+            cleaned = Regex.Replace(cleaned, "\\[([^\\]]*)\\]\\([^)]*\\)", "$1");
+            cleaned = Regex.Replace(cleaned, "https?://\\S+", "a link");
+            cleaned = Regex.Replace(cleaned, "^[\\s#>|*+-]+", " ", RegexOptions.Multiline);
+            cleaned = Regex.Replace(cleaned, "[*_~#|]+", " ");
+            cleaned = Regex.Replace(cleaned, "\\s+", " ").Trim();
+            if (cleaned.Length == 0) return hadCode ? "The answer is code; it's on screen." : String.Empty;
+
+            var summary = String.Empty;
+            foreach (Match sentence in Regex.Matches(cleaned, "[^.!?]+[.!?]+(\\s+|$)|[^.!?]+$"))
             {
-                var slice = value.Substring(0, maxChars);
-                var sentenceEnd = Math.Max(slice.LastIndexOf(". ", StringComparison.Ordinal), Math.Max(slice.LastIndexOf("! ", StringComparison.Ordinal), slice.LastIndexOf("? ", StringComparison.Ordinal)));
-                var wordEnd = slice.LastIndexOf(' ');
-                value = sentenceEnd > maxChars * 0.4
-                    ? slice.Substring(0, sentenceEnd + 1)
-                    : $"{slice.Substring(0, wordEnd > 0 ? wordEnd : maxChars).TrimEnd()}…";
-                return $"{value} More on screen.";
+                var candidate = summary.Length == 0 ? sentence.Value.Trim() : $"{summary} {sentence.Value.Trim()}";
+                if (summary.Length > 0 && candidate.Length > maxChars) break;
+                summary = candidate;
+                if (summary.Length > maxChars) break;
             }
-            return hadCode ? $"{value} Code is on screen." : value;
+            if (summary.Length > maxChars)
+            {
+                var slice = summary.Substring(0, maxChars);
+                var wordEnd = slice.LastIndexOf(' ');
+                summary = $"{slice.Substring(0, wordEnd > 0 ? wordEnd : maxChars).TrimEnd()}…";
+            }
+            if (summary.Length < cleaned.Length) return $"{EndSentence(summary)} There's more on screen.";
+            return hadCode ? $"{EndSentence(summary)} Code is on screen." : summary;
         }
+
+        private static String EndSentence(String value)
+            => Regex.IsMatch(value, "[.!?…]$") ? value : $"{value}.";
     }
 }

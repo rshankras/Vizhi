@@ -91,8 +91,9 @@ export function approvalRequiresConfirmation(intent: "approve" | "confirm_approv
 
 export function summarizeForSpeech(text: string, maxChars: number): string {
   if (!text) return "";
+  const endSentence = (value: string) => (/[.!?…]$/.test(value) ? value : `${value}.`);
   const hadCode = text.includes("```");
-  let value = text
+  const cleaned = text
     .replace(/```[\s\S]*?(```|$)/g, " ")
     .replace(/`([^`]*)`/g, "$1")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
@@ -101,13 +102,20 @@ export function summarizeForSpeech(text: string, maxChars: number): string {
     .replace(/[*_~#|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  if (!value) return hadCode ? "The answer is code; it's on screen." : "";
-  if (value.length > maxChars) {
-    const slice = value.slice(0, maxChars);
-    const sentenceEnd = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "));
-    const wordEnd = slice.lastIndexOf(" ");
-    value = sentenceEnd > maxChars * 0.4 ? slice.slice(0, sentenceEnd + 1) : `${slice.slice(0, wordEnd > 0 ? wordEnd : maxChars).trimEnd()}…`;
-    return `${value} More on screen.`;
+  if (!cleaned) return hadCode ? "The answer is code; it's on screen." : "";
+  const sentences = cleaned.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) ?? [cleaned];
+  let summary = "";
+  for (const sentence of sentences) {
+    const candidate = summary ? `${summary} ${sentence.trim()}` : sentence.trim();
+    if (summary && candidate.length > maxChars) break;
+    summary = candidate;
+    if (summary.length > maxChars) break;
   }
-  return hadCode ? `${value} Code is on screen.` : value;
+  if (summary.length > maxChars) {
+    const slice = summary.slice(0, maxChars);
+    const wordEnd = slice.lastIndexOf(" ");
+    summary = `${slice.slice(0, wordEnd > 0 ? wordEnd : maxChars).trimEnd()}…`;
+  }
+  if (summary.length < cleaned.length) return `${endSentence(summary)} There's more on screen.`;
+  return hadCode ? `${endSentence(summary)} Code is on screen.` : summary;
 }

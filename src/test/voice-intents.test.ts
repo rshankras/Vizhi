@@ -88,12 +88,29 @@ test("spoken summaries stay short and skip code", () => {
     "I fixed the bug. Code is on screen.",
   );
   const long = summarizeForSpeech(`${"The build passed. ".repeat(40)}`, 240);
-  assert.ok(long.length <= 260, `too long: ${long.length}`);
-  assert.ok(long.endsWith("More on screen."));
+  assert.ok(long.length <= 265, `too long: ${long.length}`);
+  assert.ok(long.endsWith("There's more on screen."));
   assert.equal(
     summarizeForSpeech("See [the docs](https://example.test/a) for details.", 240),
     "See the docs for details.",
   );
+});
+
+test("truncation always ends on a complete sentence", () => {
+  const answer = [
+    "I think the Logitech plugin is the heart of Vizhi—and stronger than the dashboard conceptually.",
+    "It makes the keypad feel purposeful: six sessions, a clearly selected target, fixed Yes/No/Voice controls, and tactile responses when attention is needed.",
+    "The best design decision is treating approvals as safety-critical.",
+  ].join("\n\n");
+  const spoken = summarizeForSpeech(answer, 240);
+  assert.equal(
+    spoken,
+    "I think the Logitech plugin is the heart of Vizhi—and stronger than the dashboard conceptually. There's more on screen.",
+  );
+  assert.ok(!spoken.includes("…"));
+  const two = summarizeForSpeech(answer, 300);
+  assert.ok(two.includes("attention is needed."));
+  assert.ok(two.endsWith("There's more on screen."));
 });
 
 test("read_more phrases parse and prompts about reading stay prompts", () => {
