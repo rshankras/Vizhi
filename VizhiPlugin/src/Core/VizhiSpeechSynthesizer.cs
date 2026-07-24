@@ -76,6 +76,22 @@ namespace Loupedeck.VizhiPlugin
             }
         }
 
+        internal static void PlayCue()
+        {
+            const String cueSoundPath = "/System/Library/Sounds/Pop.aiff";
+            if (!OperatingSystem.IsMacOS() || !File.Exists(cueSoundPath)) return;
+            try
+            {
+                var startInfo = new ProcessStartInfo("/usr/bin/afplay") { UseShellExecute = false };
+                startInfo.ArgumentList.Add(cueSoundPath);
+                using var process = Process.Start(startInfo);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Verbose(ex, "Vizhi could not play a confirmation cue");
+            }
+        }
+
         private static void CancelLocked()
         {
             var process = _current;

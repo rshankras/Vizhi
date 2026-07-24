@@ -267,9 +267,8 @@ namespace Loupedeck.VizhiPlugin
                         && String.Equals(current.State, "idle", StringComparison.OrdinalIgnoreCase))
                     {
                         var summary = SpokenSummary.Summarize(current.LastMessage, 240);
-                        QueueAnnouncement(
-                            summary.Length == 0 ? $"{ProjectName(current)} finished." : $"{ProjectName(current)} finished. {summary}",
-                            listenAfter: false);
+                        var prefix = currentSessions.Count > 1 ? $"{ProjectName(current)} finished." : "Finished.";
+                        QueueAnnouncement(summary.Length == 0 ? prefix : $"{prefix} {summary}", listenAfter: false);
                     }
                     continue;
                 }
@@ -476,7 +475,24 @@ namespace Loupedeck.VizhiPlugin
             }
             if (VizhiRuntime.HasPendingScreenshotDraft(state.SessionId)) VizhiRuntime.WritePinnedVoiceAction(slot, state.SessionId, text);
             else VizhiRuntime.WriteVoiceAction(slot, text);
-            Speak($"Sent to {ProjectName(state)}.", listenAfter: false);
+            if (OccupiedSessionCount() > 1)
+            {
+                Speak($"Sent to {ProjectName(state)}.", listenAfter: false);
+                return;
+            }
+            VizhiSpeechSynthesizer.PlayCue();
+            SetFace(ConversationFace.Monitoring);
+            DrainAnnouncements();
+        }
+
+        private static Int32 OccupiedSessionCount()
+        {
+            var count = 0;
+            for (var slot = 1; slot <= 6; slot++)
+            {
+                if (VizhiRuntime.GetSlot(slot).IsOccupied) count++;
+            }
+            return count;
         }
 
         private static void HandleSpeechFinished()
