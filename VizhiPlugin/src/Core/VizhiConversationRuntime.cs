@@ -180,6 +180,7 @@ namespace Loupedeck.VizhiPlugin
         private static void HandleStart()
         {
             if (IsActive) return;
+            PluginLog.Info("Vizhi voice conversation started");
             Volatile.Write(ref _active, 1);
             _muted = false;
             _emptyTurns = 0;
@@ -197,6 +198,7 @@ namespace Loupedeck.VizhiPlugin
 
         private static void Deactivate()
         {
+            PluginLog.Info("Vizhi voice conversation ended");
             Volatile.Write(ref _active, 0);
             VizhiRuntime.SetSlotsObserver(null);
             _turnId++;
@@ -305,6 +307,7 @@ namespace Loupedeck.VizhiPlugin
             }
 
             var intent = VoiceIntentCatalog.Parse(transcript);
+            PluginLog.Info($"Vizhi voice intent '{intent.Id}' from a {transcript.Length}-char transcript");
             if (String.Equals(intent.Id, VoiceIntentCatalog.PromptIntentId, StringComparison.Ordinal) && intent.PromptText.Length == 0)
             {
                 _emptyTurns++;

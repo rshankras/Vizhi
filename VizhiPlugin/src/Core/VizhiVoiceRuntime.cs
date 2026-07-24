@@ -31,6 +31,7 @@ namespace Loupedeck.VizhiPlugin
         private static readonly String RecordingPath = Path.Combine(TemporaryPath, "recording.wav");
         private static readonly String StopPath = Path.Combine(TemporaryPath, "recording.stop");
         private static readonly String TranscriptPath = Path.Combine(TemporaryPath, "transcript.txt");
+        private static readonly String VadStatsPath = Path.Combine(TemporaryPath, "vad-stats.txt");
         private static readonly String LegacyRecordingPath = Path.Combine(Path.GetTempPath(), "vizhi-voice.wav");
         private static readonly String LegacyStopPath = Path.Combine(Path.GetTempPath(), "vizhi-voice.stop");
         private static readonly String LegacyTranscriptPath = Path.Combine(Path.GetTempPath(), "vizhi-voice-transcript.txt");
@@ -366,6 +367,7 @@ end run
                 TryDelete(RecordingPath);
                 TryDelete(StopPath);
                 TryDelete(TranscriptPath);
+                TryDelete(VadStatsPath);
                 var startInfo = new ProcessStartInfo("/usr/bin/open") { UseShellExecute = false };
                 var arguments = new List<String>
                 {
@@ -389,6 +391,7 @@ end run
                     _tty = tty;
                     _options = options;
                     _onTranscript = onTranscript;
+                    PluginLog.Info($"Vizhi voice turn started (slot {slot}, vad={options.Vad}, maxsec {options.MaxSeconds})");
                     return true;
                 }
                 catch (Exception ex)
@@ -466,6 +469,8 @@ end run
                     TryDelete(TranscriptPath);
                     TryDelete(RecordingPath);
                     TryDelete(StopPath);
+                    LogVadStats();
+                    PluginLog.Info($"Vizhi voice transcript resolved ({transcript.Length} chars)");
                     FinishTurn();
                     if (onTranscript != null) onTranscript(transcript);
                     else if (!String.IsNullOrWhiteSpace(transcript)) DeliverOneShot(slot, sessionId, tty, transcript);
@@ -483,8 +488,22 @@ end run
                 }
             }
             PluginLog.Warning("Vizhi voice transcription timed out");
+            LogVadStats();
             FinishTurn();
             onTranscript?.Invoke(null);
+        }
+
+        private static void LogVadStats()
+        {
+            try
+            {
+                if (!File.Exists(VadStatsPath)) return;
+                PluginLog.Info($"Vizhi voice VAD: {File.ReadAllText(VadStatsPath).Trim()}");
+                File.Delete(VadStatsPath);
+            }
+            catch
+            {
+            }
         }
 
         private static void DeliverOneShot(Int32 slot, String sessionId, String tty, String transcript)

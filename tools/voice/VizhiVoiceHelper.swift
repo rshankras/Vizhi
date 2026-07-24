@@ -18,11 +18,14 @@ let recordingPath = argument("--out") ?? "\(temporaryPath)/recording.wav"
 let modelPath = argument("--model") ?? "\(home)/.vizhi/voice/models/ggml-base.en.bin"
 let transcriptPath = argument("--transcript") ?? "\(temporaryPath)/transcript.txt"
 let stopPath = argument("--stopflag") ?? "\(temporaryPath)/recording.stop"
+let statsPath = argument("--stats") ?? "\(temporaryPath)/vad-stats.txt"
 let maximumSeconds = Double(argument("--maxsec") ?? "60") ?? 60
 let requestMicrophonePermissionOnly = CommandLine.arguments.contains("--request-microphone-permission")
 let vadEnabled = CommandLine.arguments.contains("--vad")
 let silenceSeconds = Double(argument("--silence") ?? "1.5") ?? 1.5
-let speechThresholdDb: Float = -35
+let noiseMarginDb: Float = 12
+let minimumThresholdDb: Float = -48
+let maximumThresholdDb: Float = -22
 let awaitSpeechSeconds = 8.0
 let fileManager = FileManager.default
 
@@ -81,27 +84,66 @@ guard recorder.record() else {
 }
 try? fileManager.setAttributes(privateFileAttributes, ofItemAtPath: recordingPath)
 
+var noiseFloor: Float = -70
+if vadEnabled {
+    let calibrationDeadline = Date().addingTimeInterval(0.45)
+    while Date() < calibrationDeadline && !fileManager.fileExists(atPath: stopPath) {
+        RunLoop.current.run(until: Date().addingTimeInterval(0.09))
+        recorder.updateMeters()
+        noiseFloor = max(noiseFloor, recorder.averagePower(forChannel: 0))
+    }
+}
+let speechThreshold = min(max(noiseFloor + noiseMarginDb, minimumThresholdDb), maximumThresholdDb)
+
 NSSound(named: "Tink")?.play()
 let startedAt = Date()
+let vadArmedAt = startedAt.addingTimeInterval(0.35)
 var speechStartedAt: Date?
 var lastLoudAt = Date()
-while !fileManager.fileExists(atPath: stopPath) && Date().timeIntervalSince(startedAt) < maximumSeconds {
+var loudStreak = 0
+var maxPower: Float = -120
+var stopReason = "stopflag"
+while !fileManager.fileExists(atPath: stopPath) {
+    if Date().timeIntervalSince(startedAt) >= maximumSeconds {
+        stopReason = "maxsec"
+        break
+    }
     RunLoop.current.run(until: Date().addingTimeInterval(0.12))
     guard vadEnabled else { continue }
-    recorder.updateMeters()
     let now = Date()
-    if recorder.averagePower(forChannel: 0) >= speechThresholdDb {
-        if speechStartedAt == nil { speechStartedAt = now }
-        lastLoudAt = now
+    if now < vadArmedAt { continue }
+    recorder.updateMeters()
+    let power = recorder.averagePower(forChannel: 0)
+    maxPower = max(maxPower, power)
+    if power >= speechThreshold {
+        loudStreak += 1
+        if loudStreak >= 2 {
+            if speechStartedAt == nil { speechStartedAt = now }
+            lastLoudAt = now
+        }
         continue
     }
+    loudStreak = 0
     if speechStartedAt == nil {
-        if now.timeIntervalSince(startedAt) >= awaitSpeechSeconds { break }
+        if now.timeIntervalSince(startedAt) >= awaitSpeechSeconds {
+            stopReason = "nospeech"
+            break
+        }
     } else if now.timeIntervalSince(lastLoudAt) >= silenceSeconds {
+        stopReason = "silence"
         break
     }
 }
 recorder.stop()
+if vadEnabled {
+    let stats = String(
+        format: "floor=%.1f threshold=%.1f max=%.1f speech=%@ reason=%@ seconds=%.1f",
+        noiseFloor, speechThreshold, maxPower, speechStartedAt != nil ? "yes" : "no", stopReason, Date().timeIntervalSince(startedAt)
+    )
+    log(stats)
+    try? stats.write(toFile: statsPath, atomically: true, encoding: .utf8)
+    try? fileManager.setAttributes(privateFileAttributes, ofItemAtPath: statsPath)
+}
 try? fileManager.removeItem(atPath: stopPath)
 
 guard let whisper = whisperBinary() else {
