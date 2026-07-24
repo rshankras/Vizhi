@@ -3,10 +3,19 @@ namespace Loupedeck.VizhiPlugin
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Globalization;
     using System.IO;
     using System.Security.Cryptography;
     using System.Threading;
     using System.Threading.Tasks;
+
+    internal sealed class VoiceTurnOptions
+    {
+        public Boolean Vad { get; set; }
+        public Double SilenceSeconds { get; set; } = 1.5;
+        public Int32 MaxSeconds { get; set; } = 60;
+        public Int32 TranscriptWaitSeconds { get; set; } = 30;
+    }
 
     internal static class VizhiVoiceRuntime
     {
@@ -28,22 +37,52 @@ namespace Loupedeck.VizhiPlugin
         private static readonly Object Sync = new Object();
         private static readonly String[] WhisperCliPaths = new[] { "/opt/homebrew/bin/whisper-cli", "/usr/local/bin/whisper-cli" };
         private static Boolean _recording;
+        private static Boolean _transcribing;
         private static Int32 _modelDownloadInProgress;
         private static Int32 _slot;
         private static String _sessionId;
         private static String _tty;
+        private static VoiceTurnOptions _options;
+        private static Action<String> _onTranscript;
 
-        public static Boolean Start(Int32 slot)
+        public static Boolean Start(Int32 slot) => StartTurn(slot, new VoiceTurnOptions(), null);
+
+        public static Boolean StartTurn(Int32 slot, VoiceTurnOptions options, Action<String> onTranscript)
         {
             if (!OperatingSystem.IsMacOS()) return false;
             lock (Sync)
             {
-                if (_recording) return false;
+                if (_recording || _transcribing) return false;
                 var session = VizhiRuntime.GetSlot(slot);
                 var tty = VizhiRuntime.GetSlotTty(slot);
                 if (!session.IsOccupied || String.IsNullOrWhiteSpace(tty)) return false;
                 if (!EnsureRuntimeRequirements()) return false;
-                return BeginRecording(slot, session.SessionId, tty);
+                if (!BeginRecording(slot, session.SessionId, tty, options ?? new VoiceTurnOptions(), onTranscript)) return false;
+                if (_options.Vad) BeginTranscriptWatchLocked();
+                return true;
+            }
+        }
+
+        public static void CancelTurn()
+        {
+            lock (Sync)
+            {
+                if (!_recording) return;
+                _recording = false;
+                try
+                {
+                    File.WriteAllText(StopPath, String.Empty);
+                    VizhiPrivateFiles.EnsurePrivateFile(StopPath);
+                }
+                catch (Exception ex)
+                {
+                    PluginLog.Warning(ex, "Vizhi could not cancel voice capture");
+                }
+                if (!_transcribing)
+                {
+                    _onTranscript = _ => { };
+                    BeginTranscriptWatchLocked();
+                }
             }
         }
 
@@ -308,7 +347,7 @@ end run
             if (new FileInfo(path).LinkTarget != null) throw new IOException($"Vizhi refuses to use symlinked file {path}.");
         }
 
-        private static Boolean BeginRecording(Int32 slot, String sessionId, String tty)
+        private static Boolean BeginRecording(Int32 slot, String sessionId, String tty, VoiceTurnOptions options, Action<String> onTranscript)
         {
                 try
                 {
@@ -328,11 +367,19 @@ end run
                 TryDelete(StopPath);
                 TryDelete(TranscriptPath);
                 var startInfo = new ProcessStartInfo("/usr/bin/open") { UseShellExecute = false };
-                foreach (var argument in new[]
+                var arguments = new List<String>
                 {
                     HelperPath, "--args", "--out", RecordingPath, "--stopflag", StopPath,
-                    "--transcript", TranscriptPath, "--model", ModelPath, "--maxsec", "60",
-                }) startInfo.ArgumentList.Add(argument);
+                    "--transcript", TranscriptPath, "--model", ModelPath,
+                    "--maxsec", options.MaxSeconds.ToString(CultureInfo.InvariantCulture),
+                };
+                if (options.Vad)
+                {
+                    arguments.Add("--vad");
+                    arguments.Add("--silence");
+                    arguments.Add(options.SilenceSeconds.ToString(CultureInfo.InvariantCulture));
+                }
+                foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
                 try
                 {
                     Process.Start(startInfo);
@@ -340,6 +387,8 @@ end run
                     _slot = slot;
                     _sessionId = sessionId;
                     _tty = tty;
+                    _options = options;
+                    _onTranscript = onTranscript;
                     return true;
                 }
                 catch (Exception ex)
@@ -351,36 +400,62 @@ end run
 
         public static void Stop()
         {
-            Int32 slot;
-            String sessionId;
-            String tty;
             lock (Sync)
             {
-                if (!_recording) return;
+                if (!_recording || _transcribing) return;
                 _recording = false;
-                slot = _slot;
-                sessionId = _sessionId;
-                tty = _tty;
-                _slot = 0;
-                _sessionId = null;
-                _tty = null;
+                try
+                {
+                    File.WriteAllText(StopPath, String.Empty);
+                    VizhiPrivateFiles.EnsurePrivateFile(StopPath);
+                }
+                catch (Exception ex)
+                {
+                    PluginLog.Warning(ex, "Vizhi could not stop voice capture");
+                    ResetTurnLocked();
+                    return;
+                }
+                BeginTranscriptWatchLocked();
             }
-            try
-            {
-                File.WriteAllText(StopPath, String.Empty);
-                VizhiPrivateFiles.EnsurePrivateFile(StopPath);
-            }
-            catch (Exception ex)
-            {
-                PluginLog.Warning(ex, "Vizhi could not stop voice capture");
-                return;
-            }
-            new Thread(() => ReadTranscript(slot, sessionId, tty)) { IsBackground = true, Name = "vizhi-voice-transcript" }.Start();
         }
 
-        private static void ReadTranscript(Int32 slot, String sessionId, String tty)
+        private static void BeginTranscriptWatchLocked()
         {
-            var deadline = DateTime.UtcNow.AddSeconds(30);
+            var slot = _slot;
+            var sessionId = _sessionId;
+            var tty = _tty;
+            var waitSeconds = _options?.TranscriptWaitSeconds ?? 30;
+            var onTranscript = _onTranscript;
+            _transcribing = true;
+            new Thread(() => ReadTranscript(slot, sessionId, tty, waitSeconds, onTranscript))
+            {
+                IsBackground = true,
+                Name = "vizhi-voice-transcript",
+            }.Start();
+        }
+
+        private static void ResetTurnLocked()
+        {
+            _recording = false;
+            _transcribing = false;
+            _slot = 0;
+            _sessionId = null;
+            _tty = null;
+            _options = null;
+            _onTranscript = null;
+        }
+
+        private static void FinishTurn()
+        {
+            lock (Sync)
+            {
+                ResetTurnLocked();
+            }
+        }
+
+        private static void ReadTranscript(Int32 slot, String sessionId, String tty, Int32 waitSeconds, Action<String> onTranscript)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(waitSeconds);
             while (DateTime.UtcNow < deadline)
             {
                 Thread.Sleep(150);
@@ -391,11 +466,9 @@ end run
                     TryDelete(TranscriptPath);
                     TryDelete(RecordingPath);
                     TryDelete(StopPath);
-                    if (!String.IsNullOrWhiteSpace(transcript))
-                    {
-                        if (VizhiRuntime.HasPendingScreenshotDraft(sessionId)) VizhiRuntime.WritePinnedVoiceAction(slot, sessionId, transcript);
-                        else PasteTranscript(tty, transcript);
-                    }
+                    FinishTurn();
+                    if (onTranscript != null) onTranscript(transcript);
+                    else if (!String.IsNullOrWhiteSpace(transcript)) DeliverOneShot(slot, sessionId, tty, transcript);
                     return;
                 }
                 catch (IOException)
@@ -404,10 +477,20 @@ end run
                 catch (Exception ex)
                 {
                     PluginLog.Warning(ex, "Vizhi could not read the voice transcript");
+                    FinishTurn();
+                    onTranscript?.Invoke(null);
                     return;
                 }
             }
             PluginLog.Warning("Vizhi voice transcription timed out");
+            FinishTurn();
+            onTranscript?.Invoke(null);
+        }
+
+        private static void DeliverOneShot(Int32 slot, String sessionId, String tty, String transcript)
+        {
+            if (VizhiRuntime.HasPendingScreenshotDraft(sessionId)) VizhiRuntime.WritePinnedVoiceAction(slot, sessionId, transcript);
+            else PasteTranscript(tty, transcript);
         }
 
         private static ToolResult RunTool(String path, IEnumerable<String> arguments, Int32 timeoutMilliseconds)
