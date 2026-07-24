@@ -120,6 +120,11 @@ test("read_more phrases parse and prompts about reading stay prompts", () => {
     intent: "prompt",
     text: "read the readme and summarize it",
   });
+  assert.deepEqual(parseVoiceIntent("Summarize that."), { intent: "summarize" });
+  assert.deepEqual(parseVoiceIntent("summarize the plan and start working"), {
+    intent: "prompt",
+    text: "summarize the plan and start working",
+  });
 });
 
 test("confirm phrase in policy is a listed confirm_approve phrase", () => {

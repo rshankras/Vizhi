@@ -140,3 +140,29 @@ test("serves grid state and records browser actions", async (context) => {
   });
   assert.equal(invalidResponse.status, 400);
 });
+
+test("summarizes the selected session's last answer through the injected summarizer", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vizhi-server-summary-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const store = new StateStore(root);
+  await store.upsertSession(createSession("summary-session", { tty: "/dev/ttys009", project: "Server", last_message: "Long answer text." }));
+  const requests: string[] = [];
+  const server = await startServer(store, 0, async (text) => {
+    requests.push(text);
+    return requests.length > 1 ? null : "A short spoken summary.";
+  });
+  context.after(() => server.close());
+  const base = `http://127.0.0.1:${server.port}`;
+  const headers = { "x-vizhi-token": server.token, "content-type": "application/json" };
+
+  const ok = await fetch(`${base}/api/summarize`, { method: "POST", headers, body: JSON.stringify({ slot: 1 }) });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(await ok.json(), { summary: "A short spoken summary." });
+  assert.deepEqual(requests, ["Long answer text."]);
+
+  const empty = await fetch(`${base}/api/summarize`, { method: "POST", headers, body: JSON.stringify({ slot: 2 }) });
+  assert.equal(empty.status, 404);
+
+  const failed = await fetch(`${base}/api/summarize`, { method: "POST", headers, body: JSON.stringify({ slot: 1 }) });
+  assert.equal(failed.status, 502);
+});

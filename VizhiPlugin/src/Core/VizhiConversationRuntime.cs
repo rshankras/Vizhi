@@ -32,6 +32,7 @@ namespace Loupedeck.VizhiPlugin
             RecordingStopped,
             TranscriptReady,
             SpeechFinished,
+            SummaryReady,
         }
 
         private sealed class Signal
@@ -58,6 +59,7 @@ namespace Loupedeck.VizhiPlugin
         // Worker-thread state.
         private static Int64 _turnId;
         private static Int64 _utteranceId;
+        private static Int64 _summaryId;
         private static Int32 _turnSlot;
         private static String _turnSessionId;
         private static Boolean _muted;
@@ -178,6 +180,9 @@ namespace Loupedeck.VizhiPlugin
                 case SignalKind.SpeechFinished:
                     if (IsActive && signal.UtteranceId == _utteranceId) HandleSpeechFinished();
                     break;
+                case SignalKind.SummaryReady:
+                    if (IsActive && signal.TurnId == _summaryId) HandleSummaryReady(signal.Transcript);
+                    break;
             }
         }
 
@@ -207,6 +212,7 @@ namespace Loupedeck.VizhiPlugin
             VizhiRuntime.SetSlotsObserver(null);
             _turnId++;
             _utteranceId++;
+            _summaryId++;
             _muted = false;
             _listenAfterSpeech = false;
             AnnouncedQuestions.Clear();
@@ -356,6 +362,9 @@ namespace Loupedeck.VizhiPlugin
                 case "read_more":
                     HandleReadMore();
                     return;
+                case "summarize":
+                    HandleSummarize();
+                    return;
                 case VoiceIntentCatalog.FocusSessionIntentId:
                     HandleFocus(intent.Slot);
                     return;
@@ -455,6 +464,36 @@ namespace Loupedeck.VizhiPlugin
             var state = slot > 0 ? VizhiRuntime.GetSlot(slot) : null;
             var summary = state?.IsOccupied == true ? SpokenSummary.Summarize(state.LastMessage, 700) : String.Empty;
             Speak(summary.Length == 0 ? "There is nothing to read right now." : summary, listenAfter: false);
+        }
+
+        private static void HandleSummarize()
+        {
+            var slot = VizhiRuntime.ResolveFocusedSlot();
+            var state = slot > 0 ? VizhiRuntime.GetSlot(slot) : null;
+            var message = state?.IsOccupied == true ? state.LastMessage : null;
+            if (String.IsNullOrWhiteSpace(message))
+            {
+                Speak("There is nothing to summarize.", listenAfter: false);
+                return;
+            }
+            var summaryId = ++_summaryId;
+            VizhiCodexSummarizer.Summarize(message, summary => Enqueue(new Signal
+            {
+                Kind = SignalKind.SummaryReady,
+                TurnId = summaryId,
+                Transcript = summary,
+            }));
+            Speak("Summarizing.", listenAfter: false);
+        }
+
+        private static void HandleSummaryReady(String summary)
+        {
+            if (String.IsNullOrWhiteSpace(summary))
+            {
+                Speak("The summarizer is unavailable. There's more on screen.", listenAfter: false);
+                return;
+            }
+            Speak(SpokenSummary.Summarize(summary, 700), listenAfter: false);
         }
 
         private static void HandleScreenshot()
