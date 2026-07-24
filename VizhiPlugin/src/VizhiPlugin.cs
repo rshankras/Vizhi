@@ -22,6 +22,7 @@ namespace Loupedeck.VizhiPlugin
 
         public override void Unload()
         {
+            VizhiConversationRuntime.Shutdown();
             VizhiRuntime.Stop();
         }
     }

@@ -671,6 +671,71 @@ func drawHandoff() {
     NSBezierPath(ovalIn: NSRect(x: 36, y: 84, width: 24, height: 24)).fill()
 }
 
+func drawVoiceMic(_ color: NSColor) {
+    color.setFill()
+    NSBezierPath(roundedRect: NSRect(x: 74, y: 94, width: 44, height: 72), xRadius: 22, yRadius: 22).fill()
+    let holder = NSBezierPath()
+    holder.appendArc(withCenter: NSPoint(x: 96, y: 100), radius: 42, startAngle: 180, endAngle: 360, clockwise: false)
+    roundStroke(holder, color: color, width: 14)
+    holder.stroke()
+    let stand = NSBezierPath()
+    stand.move(to: NSPoint(x: 96, y: 58))
+    stand.line(to: NSPoint(x: 96, y: 38))
+    stand.move(to: NSPoint(x: 72, y: 32))
+    stand.line(to: NSPoint(x: 120, y: 32))
+    roundStroke(stand, color: color, width: 14)
+    stand.stroke()
+}
+
+func drawMute() {
+    drawVoiceMic(purple)
+    let slash = NSBezierPath()
+    slash.move(to: NSPoint(x: 42, y: 38))
+    slash.line(to: NSPoint(x: 150, y: 154))
+    roundStroke(slash, color: red, width: 16)
+    slash.stroke()
+}
+
+func drawConverse() {
+    let bubble = NSBezierPath(roundedRect: NSRect(x: 30, y: 64, width: 132, height: 94), xRadius: 26, yRadius: 26)
+    roundStroke(bubble, color: teal, width: 13)
+    bubble.stroke()
+    let tail = NSBezierPath()
+    tail.move(to: NSPoint(x: 64, y: 66))
+    tail.line(to: NSPoint(x: 54, y: 34))
+    tail.line(to: NSPoint(x: 94, y: 62))
+    roundStroke(tail, color: teal, width: 13)
+    tail.stroke()
+    let bars = NSBezierPath()
+    bars.move(to: NSPoint(x: 72, y: 98))
+    bars.line(to: NSPoint(x: 72, y: 124))
+    bars.move(to: NSPoint(x: 96, y: 86))
+    bars.line(to: NSPoint(x: 96, y: 136))
+    bars.move(to: NSPoint(x: 120, y: 98))
+    bars.line(to: NSPoint(x: 120, y: 124))
+    roundStroke(bars, color: green, width: 13)
+    bars.stroke()
+}
+
+func drawSpeak(frame: Int) {
+    green.setFill()
+    NSBezierPath(roundedRect: NSRect(x: 30, y: 74, width: 24, height: 44), xRadius: 6, yRadius: 6).fill()
+    let wedge = NSBezierPath()
+    wedge.move(to: NSPoint(x: 52, y: 76))
+    wedge.line(to: NSPoint(x: 86, y: 46))
+    wedge.line(to: NSPoint(x: 86, y: 146))
+    wedge.line(to: NSPoint(x: 52, y: 116))
+    wedge.close()
+    wedge.fill()
+    let arcCount = [1, 2, 3, 2][frame]
+    for index in 0..<arcCount {
+        let arc = NSBezierPath()
+        arc.appendArc(withCenter: NSPoint(x: 90, y: 96), radius: CGFloat(28 + (index * 22)), startAngle: -42, endAngle: 42, clockwise: false)
+        roundStroke(arc, color: green, width: 13)
+        arc.stroke()
+    }
+}
+
 func drawRevert() {
     let arrow = NSBezierPath()
     arrow.appendArc(withCenter: NSPoint(x: 100, y: 94), radius: 49, startAngle: 35, endAngle: 285, clockwise: true)
@@ -727,6 +792,11 @@ try writeIcon(named: "capture", draw: drawCapture)
 try writeIcon(named: "plan", draw: drawPlan)
 try writeIcon(named: "handoff", draw: drawHandoff)
 try writeIcon(named: "revert", draw: drawRevert)
+try writeIcon(named: "converse", draw: drawConverse)
+try writeIcon(named: "mute", draw: drawMute)
+for frame in 0..<4 {
+    try writeIcon(named: "speak\(frame)") { drawSpeak(frame: frame) }
+}
 
 for legacyName in ["idle", "risk", "waiting", "prompt", "writetests", "tab", "log"] {
     try? FileManager.default.removeItem(at: outputDirectory.appendingPathComponent("\(legacyName).png"))
