@@ -44,7 +44,31 @@ export function contextPercentFromTranscript(content: string): number | null {
   return null;
 }
 
-export async function readContextPercent(transcriptPath: string | null): Promise<number | null> {
+export function lastAgentMessageFromTranscript(content: string): string | null {
+  const lines = content.trimEnd().split("\n");
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    try {
+      const entry = JSON.parse(lines[index]) as JsonRecord;
+      const payload = entry.payload;
+      if (!isRecord(payload)) continue;
+      if (entry.type === "event_msg" && payload.type === "agent_message" && typeof payload.message === "string" && payload.message.trim()) {
+        return payload.message.trim();
+      }
+      if (entry.type === "response_item" && payload.type === "message" && payload.role === "assistant" && Array.isArray(payload.content)) {
+        const parts = payload.content
+          .filter((part): part is JsonRecord => isRecord(part) && typeof part.text === "string")
+          .map((part) => String(part.text));
+        const message = parts.join(" ").trim();
+        if (message) return message;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function readTranscriptTail(transcriptPath: string | null): Promise<string | null> {
   if (!transcriptPath || !isCodexTranscript(transcriptPath)) return null;
 
   try {
@@ -54,11 +78,21 @@ export async function readContextPercent(transcriptPath: string | null): Promise
       const bytesToRead = Math.min(size, MAX_TRANSCRIPT_BYTES);
       const buffer = Buffer.alloc(bytesToRead);
       await file.read(buffer, 0, bytesToRead, size - bytesToRead);
-      return contextPercentFromTranscript(buffer.toString("utf8"));
+      return buffer.toString("utf8");
     } finally {
       await file.close();
     }
   } catch {
     return null;
   }
+}
+
+export async function readContextPercent(transcriptPath: string | null): Promise<number | null> {
+  const content = await readTranscriptTail(transcriptPath);
+  return content === null ? null : contextPercentFromTranscript(content);
+}
+
+export async function readLastAgentMessage(transcriptPath: string | null): Promise<string | null> {
+  const content = await readTranscriptTail(transcriptPath);
+  return content === null ? null : lastAgentMessageFromTranscript(content);
 }

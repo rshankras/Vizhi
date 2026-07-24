@@ -552,6 +552,7 @@ export function createSession(sessionId: string, values: Partial<Session> = {}):
     question: values.question ?? null,
     pending_tool: values.pending_tool ?? null,
     pending_command: values.pending_command ?? null,
+    last_message: values.last_message ?? null,
     model: values.model ?? null,
     reasoning: values.reasoning ?? null,
     ctx_pct: values.ctx_pct ?? null,

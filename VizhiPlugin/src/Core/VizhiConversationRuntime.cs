@@ -266,7 +266,10 @@ namespace Loupedeck.VizhiPlugin
                     if (String.Equals(state.State, "busy", StringComparison.OrdinalIgnoreCase)
                         && String.Equals(current.State, "idle", StringComparison.OrdinalIgnoreCase))
                     {
-                        QueueAnnouncement($"{ProjectName(current)} finished.", listenAfter: false);
+                        var summary = SpokenSummary.Summarize(current.LastMessage, 240);
+                        QueueAnnouncement(
+                            summary.Length == 0 ? $"{ProjectName(current)} finished." : $"{ProjectName(current)} finished. {summary}",
+                            listenAfter: false);
                     }
                     continue;
                 }
@@ -347,6 +350,9 @@ namespace Loupedeck.VizhiPlugin
                     return;
                 case "status":
                     Speak(BuildDigest(ReadSlots()), listenAfter: false);
+                    return;
+                case "read_more":
+                    HandleReadMore();
                     return;
                 case VoiceIntentCatalog.FocusSessionIntentId:
                     HandleFocus(intent.Slot);
@@ -439,6 +445,14 @@ namespace Loupedeck.VizhiPlugin
                 return;
             }
             Speak($"Switched to {ProjectName(state)}.", listenAfter: false);
+        }
+
+        private static void HandleReadMore()
+        {
+            var slot = VizhiRuntime.ResolveFocusedSlot();
+            var state = slot > 0 ? VizhiRuntime.GetSlot(slot) : null;
+            var summary = state?.IsOccupied == true ? SpokenSummary.Summarize(state.LastMessage, 700) : String.Empty;
+            Speak(summary.Length == 0 ? "There is nothing to read right now." : summary, listenAfter: false);
         }
 
         private static void HandleScreenshot()

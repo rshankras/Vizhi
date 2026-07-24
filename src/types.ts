@@ -20,6 +20,7 @@ export interface Session {
   question: string | null;
   pending_tool: string | null;
   pending_command: string | null;
+  last_message: string | null;
   model: string | null;
   reasoning: string | null;
   ctx_pct: number | null;

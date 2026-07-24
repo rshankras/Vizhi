@@ -9,7 +9,7 @@ namespace Loupedeck.VizhiPlugin
 
     internal sealed class GridSlotState
     {
-        public GridSlotState(Int32 slot, String sessionId, String project, String cwd, String state, String waitingKind, String question, String pendingTool, String pendingCommand, String model, String reasoning, Int32? contextPercent, Double? costUsd, DateTimeOffset? updatedAt)
+        public GridSlotState(Int32 slot, String sessionId, String project, String cwd, String state, String waitingKind, String question, String pendingTool, String pendingCommand, String model, String reasoning, Int32? contextPercent, Double? costUsd, DateTimeOffset? updatedAt, String lastMessage = null)
         {
             this.Slot = slot;
             this.SessionId = sessionId;
@@ -25,6 +25,7 @@ namespace Loupedeck.VizhiPlugin
             this.ContextPercent = contextPercent;
             this.CostUsd = costUsd;
             this.UpdatedAt = updatedAt;
+            this.LastMessage = lastMessage;
         }
 
         public Int32 Slot { get; }
@@ -41,6 +42,7 @@ namespace Loupedeck.VizhiPlugin
         public Int32? ContextPercent { get; }
         public Double? CostUsd { get; }
         public DateTimeOffset? UpdatedAt { get; }
+        public String LastMessage { get; }
         public Boolean IsOccupied => !String.IsNullOrEmpty(this.SessionId);
 
         public static GridSlotState Empty(Int32 slot) => new GridSlotState(slot, null, null, null, null, null, null, null, null, null, null, null, null, null);
@@ -78,7 +80,7 @@ namespace Loupedeck.VizhiPlugin
                         var sessionTty = GetString(session, "tty") ?? sessionId;
                         if (!String.Equals(tty, sessionTty, StringComparison.Ordinal)) continue;
 
-                        return new GridSlotState(slot, sessionId, GetString(session, "project") ?? "Codex", GetString(session, "cwd"), GetString(session, "state") ?? "idle", GetString(session, "waiting_kind"), GetString(session, "question"), GetString(session, "pending_tool"), GetString(session, "pending_command"), GetString(session, "model"), GetString(session, "reasoning"), GetOptionalInt(session, "ctx_pct"), GetOptionalDouble(session, "cost_usd"), GetDateTimeOffset(session, "updated_at"));
+                        return new GridSlotState(slot, sessionId, GetString(session, "project") ?? "Codex", GetString(session, "cwd"), GetString(session, "state") ?? "idle", GetString(session, "waiting_kind"), GetString(session, "question"), GetString(session, "pending_tool"), GetString(session, "pending_command"), GetString(session, "model"), GetString(session, "reasoning"), GetOptionalInt(session, "ctx_pct"), GetOptionalDouble(session, "cost_usd"), GetDateTimeOffset(session, "updated_at"), GetString(session, "last_message"));
                     }
                     catch (Exception ex)
                     {

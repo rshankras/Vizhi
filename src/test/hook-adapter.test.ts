@@ -21,3 +21,21 @@ test("maps Codex hook events to the session state machine", async (context) => {
   assert.equal((await adapter.handle("PostToolUse", { ...base, tool_name: "shell" })).state, "busy");
   assert.equal((await adapter.handle("Stop", base)).state, "idle");
 });
+
+test("captures the last assistant message on turn completion and clears it on the next prompt", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vizhi-hooks-message-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const adapter = new CodexHookAdapter(new StateStore(root));
+  const base = { session_id: "thread-2", tty: "/dev/ttys002", cwd: "/work/Vizhi" };
+  await adapter.handle("SessionStart", base);
+
+  const finished = await adapter.handle("Stop", { ...base, "last-assistant-message": "Your working tree is clean." });
+  assert.equal(finished.state, "idle");
+  assert.equal(finished.last_message, "Your working tree is clean.");
+
+  const kept = await adapter.handle("Stop", base);
+  assert.equal(kept.last_message, "Your working tree is clean.");
+
+  const nextTurn = await adapter.handle("UserPromptSubmit", base);
+  assert.equal(nextTurn.last_message, null);
+});

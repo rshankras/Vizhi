@@ -5,6 +5,7 @@ export const VOICE_INTENT_IDS = [
   "deny",
   "confirm_approve",
   "status",
+  "read_more",
   "focus_session",
   "screenshot",
   "mute",
@@ -18,6 +19,7 @@ export const VOICE_INTENTS: Record<VoiceIntentId, readonly string[]> = {
   deny: ["no", "nope", "deny", "denied", "don't", "stop that"],
   confirm_approve: ["confirm approve", "confirm"],
   status: ["status", "status report", "what's happening", "what needs me"],
+  read_more: ["read more", "read it", "read the answer", "what did it say", "tell me more"],
   focus_session: ["switch to session", "focus session", "go to session", "session"],
   screenshot: ["take a screenshot", "screenshot"],
   mute: ["mute"],
@@ -85,4 +87,27 @@ export function parseVoiceIntent(text: string): VoiceIntent {
 
 export function approvalRequiresConfirmation(intent: "approve" | "confirm_approve", risk: RiskLevel): boolean {
   return intent === "approve" && risk === "high";
+}
+
+export function summarizeForSpeech(text: string, maxChars: number): string {
+  if (!text) return "";
+  const hadCode = text.includes("```");
+  let value = text
+    .replace(/```[\s\S]*?(```|$)/g, " ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/https?:\/\/\S+/g, "a link")
+    .replace(/^[\s#>|*+-]+/gm, " ")
+    .replace(/[*_~#|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!value) return hadCode ? "The answer is code; it's on screen." : "";
+  if (value.length > maxChars) {
+    const slice = value.slice(0, maxChars);
+    const sentenceEnd = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "));
+    const wordEnd = slice.lastIndexOf(" ");
+    value = sentenceEnd > maxChars * 0.4 ? slice.slice(0, sentenceEnd + 1) : `${slice.slice(0, wordEnd > 0 ? wordEnd : maxChars).trimEnd()}…`;
+    return `${value} More on screen.`;
+  }
+  return hadCode ? `${value} Code is on screen.` : value;
 }

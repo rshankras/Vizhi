@@ -5,6 +5,7 @@ import {
   CONVERSATION_POLICY,
   parseVoiceIntent,
   SESSION_NUMBER_WORDS,
+  summarizeForSpeech,
   VOICE_INTENT_IDS,
   VOICE_INTENTS,
 } from "../voice-intents.js";
@@ -69,6 +70,39 @@ test("bare approval needs confirmation only for high-risk sessions", () => {
   assert.equal(approvalRequiresConfirmation("approve", "none"), false);
   assert.equal(approvalRequiresConfirmation("confirm_approve", "high"), false);
   assert.equal(approvalRequiresConfirmation("confirm_approve", "none"), false);
+});
+
+test("spoken summaries stay short and skip code", () => {
+  assert.equal(summarizeForSpeech("", 240), "");
+  assert.equal(summarizeForSpeech("Your working tree is clean.", 240), "Your working tree is clean.");
+  assert.equal(
+    summarizeForSpeech("Done. Run `npm test` to verify.", 240),
+    "Done. Run npm test to verify.",
+  );
+  assert.equal(
+    summarizeForSpeech("```diff\n- old\n+ new\n```", 240),
+    "The answer is code; it's on screen.",
+  );
+  assert.equal(
+    summarizeForSpeech("I fixed the bug.\n\n```js\nconst x = 1;\n```", 240),
+    "I fixed the bug. Code is on screen.",
+  );
+  const long = summarizeForSpeech(`${"The build passed. ".repeat(40)}`, 240);
+  assert.ok(long.length <= 260, `too long: ${long.length}`);
+  assert.ok(long.endsWith("More on screen."));
+  assert.equal(
+    summarizeForSpeech("See [the docs](https://example.test/a) for details.", 240),
+    "See the docs for details.",
+  );
+});
+
+test("read_more phrases parse and prompts about reading stay prompts", () => {
+  assert.deepEqual(parseVoiceIntent("Read more."), { intent: "read_more" });
+  assert.deepEqual(parseVoiceIntent("what did it say"), { intent: "read_more" });
+  assert.deepEqual(parseVoiceIntent("read the readme and summarize it"), {
+    intent: "prompt",
+    text: "read the readme and summarize it",
+  });
 });
 
 test("confirm phrase in policy is a listed confirm_approve phrase", () => {

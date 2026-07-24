@@ -167,6 +167,40 @@ function contextPercent(transcriptPath) {
     return null;
 }
 
+function lastAgentMessage(transcriptPath) {
+    if (!transcriptPath || transcriptPath.indexOf("/") !== 0) return null;
+    var home = environment("HOME") || unwrap($.NSHomeDirectory());
+    var sessionsRoot = home + "/.codex/sessions/";
+    if (transcriptPath.indexOf(sessionsRoot) !== 0 || transcriptPath.split("/").indexOf("..") !== -1) return null;
+    try {
+        var content = readTail(transcriptPath, 524288);
+        if (content === null) return null;
+        var lines = content.replace(/\s+$/, "").split("\n");
+        for (var index = lines.length - 1; index >= 0; index -= 1) {
+            try {
+                var entry = JSON.parse(lines[index]);
+                var payload = entry && entry.payload;
+                if (!payload) continue;
+                if (entry.type === "event_msg" && payload.type === "agent_message" && typeof payload.message === "string" && payload.message.trim()) {
+                    return payload.message.trim();
+                }
+                if (entry.type === "response_item" && payload.type === "message" && payload.role === "assistant" && Array.isArray(payload.content)) {
+                    var parts = [];
+                    for (var partIndex = 0; partIndex < payload.content.length; partIndex += 1) {
+                        var part = payload.content[partIndex];
+                        if (part && typeof part.text === "string") parts.push(part.text);
+                    }
+                    var message = parts.join(" ").trim();
+                    if (message) return message;
+                }
+            } catch (error) {
+            }
+        }
+    } catch (error) {
+    }
+    return null;
+}
+
 function hookEvent() {
     var processArguments = $.NSProcessInfo.processInfo.arguments;
     return unwrap(processArguments.objectAtIndex(processArguments.count - 1));
@@ -226,6 +260,7 @@ function handle(eventName, payload) {
         session.state = "busy";
         session.waiting_kind = null;
         session.question = null;
+        session.last_message = null;
     } else if (normalized === "pretooluse") {
         session.state = "busy";
         session.pending_tool = pick(payload, ["tool_name", "toolName", "name"]);
@@ -249,6 +284,10 @@ function handle(eventName, payload) {
         session.question = null;
         session.pending_tool = null;
         session.pending_command = null;
+        var lastMessage = pick(payload, ["last_assistant_message", "last-assistant-message", "lastAssistantMessage", "assistant_message"])
+            || lastAgentMessage(pick(payload, ["transcript_path"]));
+        if (lastMessage) session.last_message = String(lastMessage).slice(0, 2000);
+        else if (session.last_message === undefined) session.last_message = null;
     } else if (normalized === "sessionend") {
         clearScreenshotDraft(identityValue.sessionId);
         session.state = "dead";

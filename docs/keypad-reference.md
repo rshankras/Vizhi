@@ -45,7 +45,7 @@ Hold the `Voice` key for about a second (or double-tap its surface) to start a s
 While a conversation is on, Vizhi speaks for the sessions on your grid:
 
 - When a session asks for approval, Vizhi reads the question aloud, then listens. Say `yes` to approve or `no` to deny. For a high-risk command such as `git push`, Vizhi reads the exact command back and only accepts `confirm approve`; a bare `yes` is refused aloud.
-- When a Working session becomes Ready, Vizhi announces that it finished; ended sessions are announced too. When the last session ends, the conversation ends itself.
+- When a Working session becomes Ready, Vizhi announces that it finished and speaks a short summary of Codex's answer — markdown and code stripped, cut at a sentence near 240 characters, ending with "More on screen" when there is more. Say `read more` (or `what did it say`) for a longer passage; answers that are mostly code are announced as on-screen instead of read aloud. Ended sessions are announced too, and when the last session ends the conversation ends itself.
 - Say `status` for a spoken digest of every session, `switch to session two` to move focus, `take a screenshot` to stage a capture, or anything else to send it to the focused session as a prompt — including a staged Screenshot draft, exactly like one-shot Voice.
 - Tap the key whenever you want to talk: while Vizhi is monitoring, a tap opens the microphone for any command or prompt; while Vizhi is speaking, a tap interrupts the speech and listens; while the microphone is open, a tap closes it. Say `mute` to keep the microphone closed after announcements — announcements continue, and a tap opens the microphone again. Say `end conversation` or `goodbye` to finish.
 

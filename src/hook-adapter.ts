@@ -1,6 +1,6 @@
 import { basename } from "node:path";
 import { execFileSync } from "node:child_process";
-import { readContextPercent } from "./context-usage.js";
+import { readContextPercent, readLastAgentMessage } from "./context-usage.js";
 import { createSession, StateStore } from "./state-store.js";
 import type { Session } from "./types.js";
 
@@ -79,7 +79,7 @@ export class CodexHookAdapter {
 
     if (normalizedEvent === "userpromptsubmit") {
       await this.store.clearScreenshotDraft(sessionId);
-      const next = { ...base, state: "busy" as const, waiting_kind: null, question: null };
+      const next = { ...base, state: "busy" as const, waiting_kind: null, question: null, last_message: null };
       await this.store.upsertSession(next);
       return next;
     }
@@ -117,7 +117,17 @@ export class CodexHookAdapter {
     }
 
     if (normalizedEvent === "stop" || normalizedEvent === "agent-turn-complete") {
-      const next = { ...base, state: "idle" as const, waiting_kind: null, question: null, pending_tool: null, pending_command: null };
+      const lastMessage = pick(payload, ["last_assistant_message", "last-assistant-message", "lastAssistantMessage", "assistant_message"])
+        ?? await readLastAgentMessage(pick(payload, ["transcript_path"]));
+      const next = {
+        ...base,
+        state: "idle" as const,
+        waiting_kind: null,
+        question: null,
+        pending_tool: null,
+        pending_command: null,
+        last_message: lastMessage ? lastMessage.slice(0, 2000) : session.last_message ?? null,
+      };
       await this.store.upsertSession(next);
       return next;
     }

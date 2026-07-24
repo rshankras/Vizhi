@@ -41,6 +41,7 @@ namespace Loupedeck.VizhiPlugin
             new VoiceIntentDefinition("deny", "no", "nope", "deny", "denied", "don't", "stop that"),
             new VoiceIntentDefinition("confirm_approve", "confirm approve", "confirm"),
             new VoiceIntentDefinition("status", "status", "status report", "what's happening", "what needs me"),
+            new VoiceIntentDefinition("read_more", "read more", "read it", "read the answer", "what did it say", "tell me more"),
             new VoiceIntentDefinition("focus_session", "switch to session", "focus session", "go to session", "session"),
             new VoiceIntentDefinition("screenshot", "take a screenshot", "screenshot"),
             new VoiceIntentDefinition("mute", "mute"),
