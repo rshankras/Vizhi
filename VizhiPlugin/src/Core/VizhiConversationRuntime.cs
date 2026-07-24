@@ -267,8 +267,11 @@ namespace Loupedeck.VizhiPlugin
                         && String.Equals(current.State, "idle", StringComparison.OrdinalIgnoreCase))
                     {
                         var summary = SpokenSummary.Summarize(current.LastMessage, 240);
-                        var prefix = currentSessions.Count > 1 ? $"{ProjectName(current)} finished." : "Finished.";
-                        QueueAnnouncement(summary.Length == 0 ? prefix : $"{prefix} {summary}", listenAfter: false);
+                        var multipleSessions = currentSessions.Count > 1;
+                        var announcement = summary.Length == 0
+                            ? multipleSessions ? $"{ProjectName(current)} finished." : "Finished."
+                            : multipleSessions ? $"{ProjectName(current)}: {summary}" : summary;
+                        QueueAnnouncement(announcement, listenAfter: false);
                     }
                     continue;
                 }
