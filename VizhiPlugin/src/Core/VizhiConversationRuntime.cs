@@ -275,14 +275,14 @@ namespace Loupedeck.VizhiPlugin
                         var summary = SpokenSummary.Summarize(current.LastMessage, 240);
                         var multipleSessions = currentSessions.Count > 1;
                         var announcement = summary.Length == 0
-                            ? multipleSessions ? $"{ProjectName(current)} finished." : "Finished."
-                            : multipleSessions ? $"{ProjectName(current)}: {summary}" : summary;
+                            ? multipleSessions ? $"{SpokenName(current, slots)} finished." : "Finished."
+                            : multipleSessions ? $"{SpokenName(current, slots)}: {summary}" : summary;
                         QueueAnnouncement(announcement, listenAfter: false);
                     }
                     continue;
                 }
                 AnnouncedQuestions.Remove(state.SessionId);
-                QueueAnnouncement($"{ProjectName(state)} session ended.", listenAfter: false);
+                QueueAnnouncement($"{SpokenName(state, previous)} session ended.", listenAfter: false);
                 if (String.Equals(state.SessionId, _turnSessionId, StringComparison.Ordinal))
                 {
                     _turnId++;
@@ -297,7 +297,7 @@ namespace Loupedeck.VizhiPlugin
                 var key = QuestionKey(state);
                 if (AnnouncedQuestions.TryGetValue(state.SessionId, out var announced) && String.Equals(announced, key, StringComparison.Ordinal)) continue;
                 AnnouncedQuestions[state.SessionId] = key;
-                QueueAnnouncement(BuildQuestionAnnouncement(state), listenAfter: true);
+                QueueAnnouncement(BuildQuestionAnnouncement(state, slots), listenAfter: true);
             }
 
             if (currentSessions.Count == 0 && previous.Length > 0 && HasOccupied(previous))
@@ -449,13 +449,14 @@ namespace Loupedeck.VizhiPlugin
             }
             VizhiRuntime.WriteFocusAction(slot);
             VizhiRuntime.SetFocusedSlot(slot);
+            var slots = ReadSlots();
             if (IsWaiting(state))
             {
                 AnnouncedQuestions[state.SessionId] = QuestionKey(state);
-                Speak($"Switched to {ProjectName(state)}. {BuildQuestionAnnouncement(state)}", listenAfter: true);
+                Speak($"Switched to {SpokenName(state, slots)}. {BuildQuestionAnnouncement(state, slots)}", listenAfter: true);
                 return;
             }
-            Speak($"Switched to {ProjectName(state)}.", listenAfter: false);
+            Speak($"Switched to {SpokenName(state, slots)}.", listenAfter: false);
         }
 
         private static void HandleReadMore()
@@ -519,7 +520,7 @@ namespace Loupedeck.VizhiPlugin
             else VizhiRuntime.WriteVoiceAction(slot, text);
             if (OccupiedSessionCount() > 1)
             {
-                Speak($"Sent to {ProjectName(state)}.", listenAfter: false);
+                Speak($"Sent to {SpokenName(state, ReadSlots())}.", listenAfter: false);
                 return;
             }
             VizhiSpeechSynthesizer.PlayCue();
@@ -623,17 +624,17 @@ namespace Loupedeck.VizhiPlugin
         {
             foreach (var state in slots)
             {
-                if (state?.IsOccupied == true && IsWaiting(state)) QueueAnnouncement(BuildQuestionAnnouncement(state), listenAfter: true);
+                if (state?.IsOccupied == true && IsWaiting(state)) QueueAnnouncement(BuildQuestionAnnouncement(state, slots), listenAfter: true);
             }
         }
 
         private static void OnSlotsRefreshed(GridSlotState[] slots, Int32 focusedSlot)
             => Enqueue(new Signal { Kind = SignalKind.StateChanged, Slots = slots });
 
-        private static String BuildQuestionAnnouncement(GridSlotState state)
+        private static String BuildQuestionAnnouncement(GridSlotState state, GridSlotState[] slots)
         {
             var question = String.IsNullOrWhiteSpace(state.Question) ? "Approval requested" : state.Question;
-            var announcement = new StringBuilder($"{ProjectName(state)} is asking: {question}");
+            var announcement = new StringBuilder($"{SpokenName(state, slots)} is asking: {question}");
             if (!announcement.ToString().EndsWith(".", StringComparison.Ordinal)) announcement.Append('.');
             var slot = FindSlot(state.SessionId);
             if (slot > 0 && VizhiRuntime.IsHighRiskSlot(slot))
@@ -662,7 +663,7 @@ namespace Loupedeck.VizhiPlugin
                 }
                 else if (String.Equals(state.State, "busy", StringComparison.OrdinalIgnoreCase)) status = "working";
                 else status = "ready";
-                parts.Add($"{ProjectName(state)} is {status}");
+                parts.Add($"{SpokenName(state, slots)} is {status}");
             }
             if (parts.Count == 0) return "No sessions are running.";
             var summary = parts.Count == 1 ? "One session" : $"{parts.Count} sessions";
@@ -704,6 +705,19 @@ namespace Loupedeck.VizhiPlugin
 
         private static String ProjectName(GridSlotState state)
             => String.IsNullOrWhiteSpace(state.Project) ? "Codex" : state.Project;
+
+        // Project names only disambiguate when unique; same-named sessions are
+        // addressed by slot, matching the "switch to session N" vocabulary.
+        private static String SpokenName(GridSlotState state, GridSlotState[] slots)
+        {
+            var name = ProjectName(state);
+            var occurrences = 0;
+            foreach (var other in slots ?? Array.Empty<GridSlotState>())
+            {
+                if (other?.IsOccupied == true && String.Equals(ProjectName(other), name, StringComparison.OrdinalIgnoreCase)) occurrences++;
+            }
+            return occurrences > 1 ? $"Session {state.Slot}" : name;
+        }
 
         private static String DescribePending(GridSlotState state)
         {
