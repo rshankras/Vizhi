@@ -50,14 +50,37 @@ namespace Loupedeck.VizhiPlugin
                 if (!String.IsNullOrWhiteSpace(binaryDirectory))
                 {
                     var packageRoot = Directory.GetParent(binaryDirectory)?.FullName;
-                    if (!String.IsNullOrWhiteSpace(packageRoot)) return packageRoot;
+                    if (IsPackageRoot(packageRoot)) return packageRoot;
                 }
             }
 
+            // Shadow-loaded plugins report no assembly location; a development install's
+            // .link file names the real package root, so prefer it over the last
+            // marketplace package, whose bundled assets can be stale.
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var installedPackageRoot = Path.Combine(home, "Library", "Application Support", "Logi", "LogiPluginService", "Plugins", "Vizhi");
+            var pluginsRoot = Path.Combine(home, "Library", "Application Support", "Logi", "LogiPluginService", "Plugins");
+            var linkedPackageRoot = LinkedPackageRoot(Path.Combine(pluginsRoot, "VizhiPlugin.link"));
+            if (linkedPackageRoot != null) return linkedPackageRoot;
+            var installedPackageRoot = Path.Combine(pluginsRoot, "Vizhi");
             if (Directory.Exists(installedPackageRoot)) return installedPackageRoot;
             throw new DirectoryNotFoundException("Vizhi could not locate its installed plugin package.");
+        }
+
+        private static Boolean IsPackageRoot(String path)
+            => !String.IsNullOrWhiteSpace(path) && Directory.Exists(Path.Combine(path, "scripts"));
+
+        private static String LinkedPackageRoot(String linkPath)
+        {
+            try
+            {
+                if (!File.Exists(linkPath)) return null;
+                var target = File.ReadAllText(linkPath).Trim();
+                return IsPackageRoot(target) ? target : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static Boolean CopyPrivateFileIfChanged(String sourcePath, String destinationPath)

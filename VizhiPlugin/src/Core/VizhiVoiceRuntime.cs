@@ -45,10 +45,11 @@ namespace Loupedeck.VizhiPlugin
         private static String _tty;
         private static VoiceTurnOptions _options;
         private static Action<String> _onTranscript;
+        private static Action _onRecordingStopped;
 
         public static Boolean Start(Int32 slot) => StartTurn(slot, new VoiceTurnOptions(), null);
 
-        public static Boolean StartTurn(Int32 slot, VoiceTurnOptions options, Action<String> onTranscript)
+        public static Boolean StartTurn(Int32 slot, VoiceTurnOptions options, Action<String> onTranscript, Action onRecordingStopped = null)
         {
             if (!OperatingSystem.IsMacOS()) return false;
             lock (Sync)
@@ -59,6 +60,7 @@ namespace Loupedeck.VizhiPlugin
                 if (!session.IsOccupied || String.IsNullOrWhiteSpace(tty)) return false;
                 if (!EnsureRuntimeRequirements()) return false;
                 if (!BeginRecording(slot, session.SessionId, tty, options ?? new VoiceTurnOptions(), onTranscript)) return false;
+                _onRecordingStopped = onRecordingStopped;
                 if (_options.Vad) BeginTranscriptWatchLocked();
                 return true;
             }
@@ -460,8 +462,9 @@ end run
             var tty = _tty;
             var waitSeconds = _options?.TranscriptWaitSeconds ?? 30;
             var onTranscript = _onTranscript;
+            var onRecordingStopped = _onRecordingStopped;
             _transcribing = true;
-            new Thread(() => ReadTranscript(slot, sessionId, tty, waitSeconds, onTranscript))
+            new Thread(() => ReadTranscript(slot, sessionId, tty, waitSeconds, onTranscript, onRecordingStopped))
             {
                 IsBackground = true,
                 Name = "vizhi-voice-transcript",
@@ -477,6 +480,7 @@ end run
             _tty = null;
             _options = null;
             _onTranscript = null;
+            _onRecordingStopped = null;
         }
 
         private static void FinishTurn()
@@ -487,12 +491,18 @@ end run
             }
         }
 
-        private static void ReadTranscript(Int32 slot, String sessionId, String tty, Int32 waitSeconds, Action<String> onTranscript)
+        private static void ReadTranscript(Int32 slot, String sessionId, String tty, Int32 waitSeconds, Action<String> onTranscript, Action onRecordingStopped = null)
         {
             var deadline = DateTime.UtcNow.AddSeconds(waitSeconds);
+            var recordingStopped = false;
             while (DateTime.UtcNow < deadline)
             {
                 Thread.Sleep(150);
+                if (!recordingStopped && File.Exists(VadStatsPath))
+                {
+                    recordingStopped = true;
+                    onRecordingStopped?.Invoke();
+                }
                 if (!File.Exists(TranscriptPath)) continue;
                 try
                 {

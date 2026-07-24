@@ -29,6 +29,7 @@ namespace Loupedeck.VizhiPlugin
             End,
             Tap,
             StateChanged,
+            RecordingStopped,
             TranscriptReady,
             SpeechFinished,
         }
@@ -168,6 +169,9 @@ namespace Loupedeck.VizhiPlugin
                 case SignalKind.StateChanged:
                     if (IsActive) HandleStateChanged(signal.Slots);
                     break;
+                case SignalKind.RecordingStopped:
+                    if (IsActive && signal.TurnId == _turnId && Face == ConversationFace.Listening) SetFace(ConversationFace.Transcribing);
+                    break;
                 case SignalKind.TranscriptReady:
                     if (IsActive && signal.TurnId == _turnId) HandleTranscript(signal.Transcript);
                     break;
@@ -226,11 +230,12 @@ namespace Loupedeck.VizhiPlugin
                     StartListenTurn();
                     return;
                 case ConversationFace.Listening:
-                case ConversationFace.Transcribing:
                     _turnId++;
                     VizhiVoiceRuntime.CancelTurn();
                     SetFace(ConversationFace.Monitoring);
                     DrainAnnouncements();
+                    return;
+                case ConversationFace.Transcribing:
                     return;
                 case ConversationFace.Muted:
                     _muted = false;
@@ -505,12 +510,12 @@ namespace Loupedeck.VizhiPlugin
                 MaxSeconds = VoiceIntentCatalog.TurnMaxSeconds,
                 TranscriptWaitSeconds = VoiceIntentCatalog.TurnMaxSeconds + 15,
             };
-            if (!VizhiVoiceRuntime.StartTurn(slot, options, transcript => Enqueue(new Signal
-            {
-                Kind = SignalKind.TranscriptReady,
-                TurnId = turnId,
-                Transcript = transcript,
-            })))
+            var started = VizhiVoiceRuntime.StartTurn(
+                slot,
+                options,
+                transcript => Enqueue(new Signal { Kind = SignalKind.TranscriptReady, TurnId = turnId, Transcript = transcript }),
+                () => Enqueue(new Signal { Kind = SignalKind.RecordingStopped, TurnId = turnId }));
+            if (!started)
             {
                 SetFace(ConversationFace.Monitoring);
                 return;
