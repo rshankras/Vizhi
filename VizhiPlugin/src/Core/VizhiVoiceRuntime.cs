@@ -281,7 +281,7 @@ end run
             }) { IsBackground = true, Name = "vizhi-voice-requirement" }.Start();
         }
 
-        private static void Notify(String message)
+        internal static void Notify(String message)
         {
             const String script = """
 on run argv
