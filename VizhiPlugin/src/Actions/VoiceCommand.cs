@@ -5,9 +5,10 @@ namespace Loupedeck.VizhiPlugin
 
     public sealed class VoiceCommand : PluginDynamicCommand
     {
+        private const Int32 HoldThresholdMilliseconds = 600;
         private readonly ListeningFace _face;
         private Timer _conversationAnimator;
-        private DateTime _suppressRunUntil = DateTime.MinValue;
+        private DateTime _pressStartedAt = DateTime.MinValue;
 
         public VoiceCommand()
             : base(displayName: "Voice", description: "Tap to record and send to the focused session; hold to start or end a spoken conversation with every session.", groupName: "Vizhi Operate")
@@ -29,13 +30,10 @@ namespace Loupedeck.VizhiPlugin
             return base.OnUnload();
         }
 
-        protected override void RunCommand(String actionParameter)
+        protected override void RunCommand(String actionParameter) => this.HandleTapAction();
+
+        private void HandleTapAction()
         {
-            if (DateTime.UtcNow < this._suppressRunUntil)
-            {
-                this._suppressRunUntil = DateTime.MinValue;
-                return;
-            }
             if (VizhiConversationRuntime.IsActive)
             {
                 VizhiConversationRuntime.TapWhileActive();
@@ -55,15 +53,36 @@ namespace Loupedeck.VizhiPlugin
             this.ActionImageChanged();
         }
 
+        // The MX Creative Keypad delivers only Press/Release pairs here (PressDuration is
+        // always 0 and the SDK LongPress event fires at most once), so hold detection
+        // times the press ourselves and never forwards Press/Release to the base class,
+        // which would otherwise also dispatch RunCommand.
         protected override Boolean ProcessButtonEvent2(String actionParameter, DeviceButtonEvent2 buttonEvent)
         {
             PluginLog.Verbose($"Vizhi voice key button event {buttonEvent.EventType} after {buttonEvent.PressDuration}ms");
-            if (buttonEvent.EventType == DeviceButtonEventType.LongPress)
+            switch (buttonEvent.EventType)
             {
-                this.ToggleConversation();
-                return true;
+                case DeviceButtonEventType.Press:
+                    this._pressStartedAt = DateTime.UtcNow;
+                    return true;
+                case DeviceButtonEventType.LongPress:
+                    this._pressStartedAt = DateTime.MinValue;
+                    this.ToggleConversation();
+                    return true;
+                case DeviceButtonEventType.RepeatPress:
+                    return true;
+                case DeviceButtonEventType.Release:
+                {
+                    var pressStartedAt = this._pressStartedAt;
+                    this._pressStartedAt = DateTime.MinValue;
+                    if (pressStartedAt == DateTime.MinValue) return true;
+                    if (DateTime.UtcNow - pressStartedAt >= TimeSpan.FromMilliseconds(HoldThresholdMilliseconds)) this.ToggleConversation();
+                    else this.HandleTapAction();
+                    return true;
+                }
+                default:
+                    return base.ProcessButtonEvent2(actionParameter, buttonEvent);
             }
-            return base.ProcessButtonEvent2(actionParameter, buttonEvent);
         }
 
         protected override Boolean ProcessTouchEvent(String actionParameter, DeviceTouchEvent touchEvent)
@@ -79,7 +98,6 @@ namespace Loupedeck.VizhiPlugin
 
         private void ToggleConversation()
         {
-            this._suppressRunUntil = DateTime.UtcNow.AddMilliseconds(800);
             if (this._face.IsActive)
             {
                 VizhiVoiceRuntime.CancelTurn();
