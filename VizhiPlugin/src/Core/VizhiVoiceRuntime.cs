@@ -100,9 +100,22 @@ namespace Loupedeck.VizhiPlugin
             return false;
         }
 
+        private static Int32 _helperVerified;
+
         private static Boolean EnsureBundledHelper()
         {
-            if (HasUsableHelper()) return true;
+            var packagedExecutablePath = Path.Combine(VizhiCodexIntegration.PackageRoot(), "voice", "VizhiVoiceHelper.app", "Contents", "MacOS", "VizhiVoiceHelper");
+            if (HasUsableHelper())
+            {
+                // Reinstall when the packaged helper changed, so plugin updates reach the
+                // runtime copy; keep an existing install when the package is unavailable.
+                if (_helperVerified == 1 || !File.Exists(packagedExecutablePath) || FilesHaveSameHash(HelperExecutablePath, packagedExecutablePath))
+                {
+                    _helperVerified = 1;
+                    return true;
+                }
+                PluginLog.Info("Vizhi is refreshing its bundled Voice helper after an update.");
+            }
 
             String stagingPath = null;
             try
@@ -137,6 +150,7 @@ namespace Loupedeck.VizhiPlugin
                 }
                 Directory.Move(stagingPath, HelperPath);
                 stagingPath = null;
+                _helperVerified = 1;
                 PluginLog.Info("Vizhi installed its bundled Voice helper for this user.");
                 return true;
             }
@@ -163,6 +177,23 @@ namespace Loupedeck.VizhiPlugin
                 if (new DirectoryInfo(HelperPath).LinkTarget != null || new FileInfo(HelperExecutablePath).LinkTarget != null) return false;
                 if (!OperatingSystem.IsMacOS()) return true;
                 return (File.GetUnixFileMode(HelperExecutablePath) & UnixFileMode.UserExecute) != 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static Boolean FilesHaveSameHash(String firstPath, String secondPath)
+        {
+            try
+            {
+                if (!File.Exists(firstPath) || !File.Exists(secondPath)) return false;
+                using var sha256 = SHA256.Create();
+                Byte[] firstHash;
+                using (var first = File.OpenRead(firstPath)) firstHash = sha256.ComputeHash(first);
+                using var second = File.OpenRead(secondPath);
+                return Convert.ToHexString(firstHash) == Convert.ToHexString(sha256.ComputeHash(second));
             }
             catch
             {
